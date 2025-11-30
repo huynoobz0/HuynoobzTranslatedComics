@@ -4,13 +4,143 @@
 <meta charset="UTF-8">
 <title>Truyện do Huynoobz dịch</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+    body {
+        margin: 0;
+        padding: 0;
+        font-family: Arial, sans-serif;
+    }
+    
+    #header-bar {
+        background: #222;
+        color: #fff;
+        padding: 15px 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    #header-title {
+        font-size: 20px;
+        font-weight: bold;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+    
+    #header-title-text {
+        font-size: 20px;
+        font-weight: bold;
+    }
+    
+    #header-github-link {
+        font-size: 12px;
+        color: #aaa;
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+    
+    #header-github-link:hover {
+        color: #fff;
+        text-decoration: underline;
+    }
+    
+    #header-buttons {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+    }
+    
+    #header-buttons button {
+        background: #444;
+        color: #fff;
+        border: none;
+        padding: 8px 15px;
+        font-size: 14px;
+        cursor: pointer;
+        border-radius: 4px;
+        transition: background 0.2s;
+    }
+    
+    #header-buttons button:hover {
+        background: #555;
+    }
+    
+    #header-buttons button:disabled {
+        display: none;
+    }
+    
+    #width-controls {
+        display: none;
+        align-items: center;
+        gap: 8px;
+        margin-right: 10px;
+    }
+    
+    #width-controls button {
+        background: #444;
+        color: #fff;
+        border: none;
+        padding: 5px 10px;
+        font-size: 16px;
+        cursor: pointer;
+        border-radius: 4px;
+        width: 30px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    #width-controls button:hover {
+        background: #555;
+    }
+    
+    #width-display {
+        color: #fff;
+        font-size: 14px;
+        min-width: 60px;
+        text-align: center;
+    }
+    
+    #content {
+        min-height: calc(100vh - 60px);
+    }
+    
+    #content.viewing-chapter {
+        margin: 0 auto;
+        padding: 20px;
+        transition: max-width 0.3s ease;
+    }
+    
+    #content.viewing-chapter > * {
+        max-width: 100%;
+        margin: 0 auto;
+    }
+</style>
 </head>
 
 <body>
+<div id="header-bar">
+    <div id="header-title">
+        <div id="header-title-text">Truyện do Huynoobz dịch</div>
+        <a id="header-github-link" href="https://github.com/huynoobz0/HuynoobzTranslatedComics" target="_blank" rel="noopener noreferrer">Vào đây nếu bị lỗi nhé!</a>
+    </div>
+    <div id="header-buttons">
+        <div id="width-controls">
+            <button id="width-decrease" title="Giảm độ rộng">−</button>
+            <span id="width-display">800px</span>
+            <button id="width-increase" title="Tăng độ rộng">+</button>
+        </div>
+        <button id="back-chaplist-btn" style="display:none;">Danh sách chap</button>
+        <button id="back-home-btn" style="display:none;">Trang chủ</button>
+    </div>
+</div>
 <div id="content">Đang tải...</div>
-
-<button id="back-home-btn" style="display:none; position: fixed; bottom: 20px; right: 20px; padding: 10px 15px; font-size: 14px;">Trang chủ</button>
-<button id="back-chaplist-btn" style="display:none; position: fixed; bottom: 20px; right: 150px; padding: 10px 15px; font-size: 14px;">Danh sách chap</button>
 
 <script>
 //load home.html
@@ -39,7 +169,7 @@ async function loadPage(page) {
                 updateLatestChapters();
             }, 500);
         } else if (page === "chapList") {
-            if (backHomeBtn) backHomeBtn.style.display = "block";
+            if (backHomeBtn) backHomeBtn.style.display = "inline-block";
             if (backChapListBtn) backChapListBtn.style.display = "none";
         }
     } catch (e) {
@@ -81,6 +211,27 @@ async function openStory(storyName) {
         loadChapters(storyName);
     }, 100);
 };
+
+// Numeric sorting function for filenames
+function numericSort(a, b) {
+    // Extract numbers from filename (e.g., "1.html" -> 1, "1.5.html" -> 1.5, "10.html" -> 10)
+    const getNumericValue = (name) => {
+        const match = name.match(/^(\d+\.?\d*)/);
+        return match ? parseFloat(match[1]) : Infinity;
+    };
+    const numA = getNumericValue(a.name);
+    const numB = getNumericValue(b.name);
+    
+    // If both have numbers, sort numerically
+    if (numA !== Infinity && numB !== Infinity) {
+        return numA - numB;
+    }
+    // If only one has a number, put it first
+    if (numA !== Infinity) return -1;
+    if (numB !== Infinity) return 1;
+    // If neither has a number, sort alphabetically
+    return a.name.localeCompare(b.name);
+}
 
 async function loadChapters(story) {
     console.log("loadChapters", story);
@@ -135,7 +286,7 @@ async function loadChapters(story) {
         }
 
         // Show files at root level if any
-        const rootFiles = data.filter(item => item.type === "file").sort((a, b) => a.name.localeCompare(b.name));
+        const rootFiles = data.filter(item => item.type === "file").sort(numericSort);
         const folders = data.filter(item => item.type === "dir").sort((a, b) => a.name.localeCompare(b.name));
 
         let html = "";
@@ -214,7 +365,7 @@ async function loadFolderRecursive(storyName, folderPath, folderId) {
         }
 
         // Separate files and folders
-        const files = data.filter(item => item.type === "file").sort((a, b) => a.name.localeCompare(b.name));
+        const files = data.filter(item => item.type === "file").sort(numericSort);
         const subFolders = data.filter(item => item.type === "dir").sort((a, b) => a.name.localeCompare(b.name));
         
         console.log("Files:", files.length, "Subfolders:", subFolders.length);
@@ -266,6 +417,74 @@ async function loadFolderRecursive(storyName, folderPath, folderId) {
 // Store chapter list HTML for restoration
 let savedChapListHtml = null;
 
+// Width adjustment for chapter viewing
+let currentMaxWidth = parseInt(localStorage.getItem('chapterMaxWidth')) || 800;
+const minWidth = 400;
+const maxWidth = 2000;
+const widthStep = 50;
+let isViewingChapter = false;
+
+// Initialize width controls
+function initWidthControls() {
+    const widthControls = document.getElementById("width-controls");
+    const widthDisplay = document.getElementById("width-display");
+    const widthDecrease = document.getElementById("width-decrease");
+    const widthIncrease = document.getElementById("width-increase");
+    const contentDiv = document.getElementById("content");
+    
+    if (!widthControls || !widthDisplay || !widthDecrease || !widthIncrease) return;
+    
+    // Update display
+    function updateWidthDisplay() {
+        widthDisplay.textContent = currentMaxWidth + "px";
+        if (contentDiv && isViewingChapter) {
+            contentDiv.style.maxWidth = currentMaxWidth + "px";
+        }
+        localStorage.setItem('chapterMaxWidth', currentMaxWidth);
+    }
+    
+    // Decrease width
+    widthDecrease.addEventListener("click", () => {
+        if (currentMaxWidth > minWidth) {
+            currentMaxWidth = Math.max(minWidth, currentMaxWidth - widthStep);
+            updateWidthDisplay();
+        }
+    });
+    
+    // Increase width
+    widthIncrease.addEventListener("click", () => {
+        if (currentMaxWidth < maxWidth) {
+            currentMaxWidth = Math.min(maxWidth, currentMaxWidth + widthStep);
+            updateWidthDisplay();
+        }
+    });
+    
+    // Initial display update (don't set max-width, just show the value)
+    widthDisplay.textContent = currentMaxWidth + "px";
+}
+
+// Show/hide width controls
+function showWidthControls(show) {
+    const widthControls = document.getElementById("width-controls");
+    const contentDiv = document.getElementById("content");
+    
+    isViewingChapter = show;
+    
+    if (widthControls) {
+        widthControls.style.display = show ? "flex" : "none";
+    }
+    
+    if (contentDiv) {
+        if (show) {
+            contentDiv.classList.add("viewing-chapter");
+            contentDiv.style.maxWidth = currentMaxWidth + "px";
+        } else {
+            contentDiv.classList.remove("viewing-chapter");
+            contentDiv.style.maxWidth = "auto";
+        }
+    }
+}
+
 // Load HTML file content
 async function loadHtmlFile(fileUrl, fileName) {
     const contentDiv = document.getElementById("content");
@@ -293,9 +512,10 @@ async function loadHtmlFile(fileUrl, fileName) {
         // Load the HTML content
         contentDiv.innerHTML = html;
         
-        // Show back buttons
-        if (backHomeBtn) backHomeBtn.style.display = "block";
-        if (backChapListBtn) backChapListBtn.style.display = "block";
+        // Show back buttons and width controls
+        if (backHomeBtn) backHomeBtn.style.display = "inline-block";
+        if (backChapListBtn) backChapListBtn.style.display = "inline-block";
+        showWidthControls(true);
         
     } catch (e) {
         contentDiv.innerHTML = `<div style="padding: 20px;">Lỗi: ${e.message}</div>`;
@@ -311,6 +531,7 @@ function backToChapList() {
     if (savedChapListHtml) {
         contentDiv.innerHTML = savedChapListHtml;
         if (backChapListBtn) backChapListBtn.style.display = "none";
+        showWidthControls(false);
     } else {
         // If no saved HTML, reload the chapter list page
         const params = new URLSearchParams(location.search);
@@ -325,10 +546,18 @@ function backToChapList() {
     }
 }
 
+// Initialize width controls when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initWidthControls);
+} else {
+    initWidthControls();
+}
+
 // Back button handlers
 const backHomeBtn = document.getElementById("back-home-btn");
 if (backHomeBtn) {
     backHomeBtn.addEventListener("click", () => {
+        showWidthControls(false);
         location.href = "?p=home";
     });
 }
