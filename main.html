@@ -1,27 +1,36 @@
 <!DOCTYPE html>
-<html>
+<html lang="vi">
 <head>
 <meta charset="UTF-8">
 <title>Truyện do Huynoobz dịch</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
+
 <body>
 <div id="content">Đang tải...</div>
 
 <script>
 async function loadPage(page) {
-    const url = `https://raw.githubusercontent.com/<user>/<repo>/main/${page}.html`
-    const res = await fetch(url);
-    if (!res.ok) {
-        document.getElementById("content").innerText = "Lỗi tải dữ liệu";
-        return;
+    // page = tên file không đuôi, VD: "home"
+    const url = `https://raw.githubusercontent.com/huynoobz0/HuynoobzTranslatedComics/main/${page}.html`;
+    
+    try {
+        const res = await fetch(url);
+        if (!res.ok) {
+            document.getElementById("content").innerText = "Lỗi tải dữ liệu";
+            return;
+        }
+        const html = await res.text();
+        document.getElementById("content").innerHTML = html;
+    } catch (e) {
+        document.getElementById("content").innerText = "Không thể kết nối tới GitHub";
     }
-    const html = await res.text();
-    document.getElementById("content").innerHTML = html;
 }
 
-// ví dụ: ?p=about
+// ?p=home → load home.html
 const params = new URLSearchParams(location.search);
-loadPage(params.get("p") || "index");
+loadPage(params.get("p") || "home");
 </script>
+
 </body>
 </html>
