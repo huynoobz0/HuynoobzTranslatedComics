@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <title>Truyện do Huynoobz dịch</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <style>
     body {
         font-family: Arial, sans-serif;
@@ -11,6 +12,7 @@
         margin: 0;
         padding: 0;
     }
+
     header {
         background: #222;
         color: #fff;
@@ -19,20 +21,26 @@
         font-size: 24px;
         font-weight: bold;
     }
+
     .container {
         max-width: 800px;
         margin: 40px auto;
         padding: 0 20px;
     }
+
     .story {
         background: #fff;
         padding: 15px 20px;
         border-radius: 8px;
         margin-bottom: 15px;
         border-left: 5px solid #222;
+        cursor: pointer;
     }
 
-    /* NEW: bố trí title + status trên cùng 1 dòng */
+    .story:hover {
+        background: #f0f0f0;
+    }
+
     .story-header {
         display: flex;
         justify-content: space-between;
@@ -43,6 +51,7 @@
         font-size: 20px;
         font-weight: bold;
     }
+
     .story-status {
         color: #555;
         font-size: 14px;
@@ -50,12 +59,30 @@
         white-space: nowrap;
     }
 
-    /* dòng chap mới nhất */
     .latest-chapter {
         margin-top: 6px;
         font-size: 14px;
         color: #333;
     }
+
+    /* FLOAT BUTTON */
+    #home-floating-btn {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: #222;
+        color: #fff;
+        padding: 12px 18px;
+        border-radius: 999px;
+        font-size: 14px;
+        text-decoration: none;
+        box-shadow: 0 3px 6px rgba(0,0,0,0.3);
+    }
+
+    #home-floating-btn:hover {
+        background: #444;
+    }
+
 </style>
 </head>
 
@@ -65,7 +92,7 @@
 
 <div class="container">
 
-    <div class="story">
+    <div class="story" onclick="openStory('Anh hùng X Quỷ Vương X Phản diện')">
         <div class="story-header">
             <div class="story-title">Anh hùng X Quỷ Vương X Phản diện</div>
             <div class="story-status">(Hoàn thành)</div>
@@ -73,7 +100,7 @@
         <div class="latest-chapter">Chap mới nhất: <b>—</b></div>
     </div>
 
-    <div class="story">
+    <div class="story" onclick="openStory('Chúa tể muôn loài')">
         <div class="story-header">
             <div class="story-title">Chúa tể muôn loài</div>
             <div class="story-status">(part 2)</div>
@@ -81,7 +108,7 @@
         <div class="latest-chapter">Chap mới nhất: <b>—</b></div>
     </div>
 
-    <div class="story">
+    <div class="story" onclick="openStory('Học viện Tracen Hắc ám của các nàng')">
         <div class="story-header">
             <div class="story-title">Học viện Tracen Hắc ám của các nàng</div>
             <div class="story-status">(Chap 5 – ngang raw)</div>
@@ -89,7 +116,7 @@
         <div class="latest-chapter">Chap mới nhất: <b>—</b></div>
     </div>
 
-    <div class="story">
+    <div class="story" onclick="openStory('Mã Nương - Cuộc đua xinh đẹp: Ngôi sao nở rộ')">
         <div class="story-header">
             <div class="story-title">Mã Nương - Cuộc đua xinh đẹp: Ngôi sao nở rộ</div>
             <div class="story-status"></div>
@@ -98,6 +125,16 @@
     </div>
 
 </div>
+
+<!-- FLOAT HOME BUTTON -->
+<a id="home-floating-btn" href="?p=home">Trang chủ</a>
+
+<script>
+function openStory(storyName) {
+    const encoded = encodeURIComponent(storyName);
+    location.href = `?p=chapList&story=${encoded}`;
+}
+</script>
 
 </body>
 </html>

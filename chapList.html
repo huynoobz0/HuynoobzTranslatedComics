@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Danh sách chap</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background: #f9f9f9;
+        margin: 0;
+        padding: 20px;
+    }
+
+    h1 {
+        font-size: 22px;
+        margin-bottom: 10px;
+    }
+
+    .folder {
+        margin-top: 15px;
+        padding-left: 10px;
+        border-left: 3px solid #222;
+    }
+
+    .folder-title {
+        font-size: 18px;
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+
+    .chap {
+        margin-left: 15px;
+        font-size: 15px;
+        margin-bottom: 3px;
+    }
+
+    a {
+        text-decoration: none;
+        color: #0070cc;
+    }
+
+    a:hover {
+        text-decoration: underline;
+    }
+
+</style>
+</head>
+
+<body>
+
+<h1 id="story-title">Đang tải...</h1>
+<div id="chap-list">Đang tải danh sách chap...</div>
+
+<script>
+async function loadChapters() {
+    const params = new URLSearchParams(location.search);
+    const story = params.get("story");
+
+    if (!story) {
+        document.getElementById("story-title").innerText = "Lỗi: không có tên truyện.";
+        return;
+    }
+
+    document.getElementById("story-title").innerText = story;
+
+    const apiUrl = `https://api.github.com/repos/huynoobz0/HuynoobzTranslatedComics/contents/${story}`;
+
+    try {
+        const res = await fetch(apiUrl);
+        const data = await res.json();
+
+        if (!Array.isArray(data)) {
+            document.getElementById("chap-list").innerText = "Không thể tải cây thư mục.";
+            return;
+        }
+
+        let html = "";
+
+        // mỗi folder = Part1, Part2, ...
+        const folders = data.filter(item => item.type === "dir");
+
+        for (const folder of folders) {
+            html += `<div class="folder">
+                        <div class="folder-title">${folder.name}</div>
+                        <div id="f-${folder.name}">Đang tải...</div>
+                     </div>`;
+
+            // load chap trong folder
+            loadFolderChapters(story, folder.name);
+        }
+
+        document.getElementById("chap-list").innerHTML = html;
+
+    } catch (e) {
+        document.getElementById("chap-list").innerText = "Lỗi kết nối GitHub.";
+    }
+}
+
+
+async function loadFolderChapters(story, folder) {
+    const url = `https://api.github.com/repos/huynoobz0/HuynoobzTranslatedComics/contents/${story}/${folder}`;
+
+    const box = document.getElementById(`f-${folder}`);
+
+    try {
+        const res = await fetch(url);
+        const data = await res.json();
+
+        const htmlFiles = data.filter(item => item.type === "file" && item.name.endsWith(".html"));
+
+        if (htmlFiles.length === 0) {
+            box.innerHTML = "<i>Không có chap</i>";
+            return;
+        }
+
+        let out = "";
+        for (const file of htmlFiles) {
+            const name = file.name.replace(".html", "");
+
+            out += `
+                <div class="chap">
+                    <a href="?p=${story}/${folder}/${file.name}">
+                        ${name}
+                    </a>
+                </div>
+            `;
+        }
+
+        box.innerHTML = out;
+
+    } catch (e) {
+        box.innerHTML = "<i>Lỗi tải folder</i>";
+    }
+}
+
+loadChapters();
+</script>
+
+</body>
+</html>
