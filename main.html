@@ -9,7 +9,59 @@
 <body>
 <div id="content">Đang tải...</div>
 
+<button id="back-home-btn" style="display:none; position: fixed; bottom: 20px; right: 20px; padding: 10px 15px; font-size: 14px;">Trang chủ</button>
+
 <script>
+// khi click vào truyện
+document.querySelectorAll(".story").forEach(storyDiv => {
+    storyDiv.addEventListener("click", async () => {
+        const storyName = storyDiv.dataset.story;
+
+        // hiển thị nút trở về home
+        const backBtn = document.getElementById("back-home-btn");
+        backBtn.style.display = "block";
+
+        // fetch chapList.html từ GitHub
+        try {
+            const res = await fetch("https://raw.githubusercontent.com/huynoobz0/HuynoobzTranslatedComics/refs/heads/main/chapList.html");
+            let html = await res.text();
+
+            // chèn vào #content
+            const contentDiv = document.getElementById("content");
+            contentDiv.innerHTML = html;
+
+            // update URL param để chapList biết truyện nào
+            const newUrl = new URL(window.location);
+            newUrl.searchParams.set("p", "chapList");
+            newUrl.searchParams.set("story", storyName);
+            window.history.pushState({}, "", newUrl);
+
+            // gọi loadChapters() sau khi chapList.html được chèn
+            if (typeof loadChapters === "function") loadChapters();
+
+        } catch (e) {
+            alert("Không thể tải danh sách chap từ GitHub");
+        }
+    });
+});
+
+// sự kiện click nút trở về home
+document.getElementById("back-home-btn").addEventListener("click", async () => {
+    // ẩn nút
+    document.getElementById("back-home-btn").style.display = "none";
+
+    // load lại home.html
+    const res = await fetch("https://raw.githubusercontent.com/huynoobz0/HuynoobzTranslatedComics/refs/heads/main/home.html");
+    const html = await res.text();
+    document.getElementById("content").innerHTML = html;
+
+    // update URL
+    const newUrl = new URL(window.location);
+    newUrl.searchParams.set("p", "home");
+    newUrl.searchParams.delete("story");
+    window.history.pushState({}, "", newUrl);
+});
+
 async function loadPage(page) {
     // page = tên file không đuôi, VD: "home"
     const url = `https://raw.githubusercontent.com/huynoobz0/HuynoobzTranslatedComics/refs/heads/main/${page}.html`;
@@ -25,16 +77,68 @@ async function loadPage(page) {
     } catch (e) {
         document.getElementById("content").innerText = "Không thể kết nối tới GitHub";
     }
-}
+};
 
 // ?p=home → load home.html
 const params = new URLSearchParams(location.search);
 loadPage(params.get("p") || "home");
 
-function openStory(storyName) {
-    const encoded = encodeURIComponent(storyName);
-    location.href = `?p=chapList&story=${encoded}`;
+async function loadChapList(storyName) {
+    const url = "https://raw.githubusercontent.com/huynoobz0/HuynoobzTranslatedComics/refs/heads/main/chapList.html";
+    const res = await fetch(url);
+    const html = await res.text();
+
+    // chèn HTML (chỉ phần body hoặc toàn bộ)
+    document.getElementById("content").innerHTML = html;
+
+    // chạy thủ công script loadChapters
+    if (typeof loadChapters === "function") loadChapters();
 };
+
+async function loadChapters() {
+    const params = new URLSearchParams(location.search);
+    const story = params.get("story");
+
+    if (!story) {
+        document.getElementById("story-title").innerText = "Lỗi: không có tên truyện.";
+        return;
+    }
+
+    document.getElementById("story-title").innerText = story;
+
+    const apiUrl = `https://api.github.com/repos/huynoobz0/HuynoobzTranslatedComics/contents/${story}`;
+
+    try {
+        const res = await fetch(apiUrl);
+        const data = await res.json();
+
+        if (!Array.isArray(data)) {
+            document.getElementById("chap-list").innerText = "Không thể tải cây thư mục.";
+            return;
+        }
+
+        let html = "";
+
+        // mỗi folder = Part1, Part2, ...
+        const folders = data.filter(item => item.type === "dir");
+
+        for (const folder of folders) {
+            html += `<div class="folder">
+                        <div class="folder-title">${folder.name}</div>
+                        <div id="f-${folder.name}">Đang tải...</div>
+                     </div>`;
+
+            // load chap trong folder
+            loadFolderChapters(story, folder.name);
+        }
+
+        document.getElementById("chap-list").innerHTML = html;
+
+    } catch (e) {
+        document.getElementById("chap-list").innerText = "Lỗi kết nối GitHub.";
+    }
+};
+
 
 </script>
 
