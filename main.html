@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Truyện do Huynoobz dịch</title>
+</head>
+<body>
+<div id="content">Đang tải...</div>
+
+<script>
+async function loadPage(page) {
+    const url = `https://raw.githubusercontent.com/<user>/<repo>/main/${page}.html`
+    const res = await fetch(url);
+    if (!res.ok) {
+        document.getElementById("content").innerText = "Lỗi tải dữ liệu";
+        return;
+    }
+    const html = await res.text();
+    document.getElementById("content").innerHTML = html;
+}
+
+// ví dụ: ?p=about
+const params = new URLSearchParams(location.search);
+loadPage(params.get("p") || "index");
+</script>
+</body>
+</html>
