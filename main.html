@@ -142,6 +142,7 @@ async function loadChapters() {
 function openStory(storyName) {
     const encoded = encodeURIComponent(storyName);
     location.href = `?p=chapList&story=${encoded}`;
+    loadChapters();
 };
 
 </script>
