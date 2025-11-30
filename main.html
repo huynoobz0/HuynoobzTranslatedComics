@@ -10,59 +10,12 @@
 <div id="content">Đang tải...</div>
 
 <button id="back-home-btn" style="display:none; position: fixed; bottom: 20px; right: 20px; padding: 10px 15px; font-size: 14px;">Trang chủ</button>
+<button id="back-chaplist-btn" style="display:none; position: fixed; bottom: 20px; right: 150px; padding: 10px 15px; font-size: 14px;">Danh sách chap</button>
 
 <script>
-// khi click vào truyện
-document.querySelectorAll(".story").forEach(storyDiv => {
-    storyDiv.addEventListener("click", async () => {
-        const storyName = storyDiv.dataset.story;
-
-        // hiển thị nút trở về home
-        const backBtn = document.getElementById("back-home-btn");
-        backBtn.style.display = "block";
-
-        // fetch chapList.html từ GitHub
-        try {
-            const res = await fetch("https://raw.githubusercontent.com/huynoobz0/HuynoobzTranslatedComics/refs/heads/main/chapList.html");
-            let html = await res.text();
-
-            // chèn vào #content
-            const contentDiv = document.getElementById("content");
-            contentDiv.innerHTML = html;
-
-            // update URL param để chapList biết truyện nào
-            const newUrl = new URL(window.location);
-            newUrl.searchParams.set("p", "chapList");
-            newUrl.searchParams.set("story", storyName);
-            window.history.pushState({}, "", newUrl);
-
-            // gọi loadChapters() sau khi chapList.html được chèn
-            if (typeof loadChapters === "function") loadChapters();
-
-        } catch (e) {
-            alert("Không thể tải danh sách chap từ GitHub");
-        }
-    });
-});
-
-// sự kiện click nút trở về home
-document.getElementById("back-home-btn").addEventListener("click", async () => {
-    // ẩn nút
-    document.getElementById("back-home-btn").style.display = "none";
-
-    // load lại home.html
-    const res = await fetch("https://raw.githubusercontent.com/huynoobz0/HuynoobzTranslatedComics/refs/heads/main/home.html");
-    const html = await res.text();
-    document.getElementById("content").innerHTML = html;
-
-    // update URL
-    const newUrl = new URL(window.location);
-    newUrl.searchParams.set("p", "home");
-    newUrl.searchParams.delete("story");
-    window.history.pushState({}, "", newUrl);
-});
-
+//load home.html
 async function loadPage(page) {
+    console.log("loadPage", page);
     // page = tên file không đuôi, VD: "home"
     const url = `https://raw.githubusercontent.com/huynoobz0/HuynoobzTranslatedComics/refs/heads/main/${page}.html`;
     
@@ -74,76 +27,388 @@ async function loadPage(page) {
         }
         const html = await res.text();
         document.getElementById("content").innerHTML = html;
+        
+        // Update button visibility
+        const backHomeBtn = document.getElementById("back-home-btn");
+        const backChapListBtn = document.getElementById("back-chaplist-btn");
+        if (page === "home") {
+            if (backHomeBtn) backHomeBtn.style.display = "none";
+            if (backChapListBtn) backChapListBtn.style.display = "none";
+            // Update latest chapters when home page loads
+            setTimeout(() => {
+                updateLatestChapters();
+            }, 500);
+        } else if (page === "chapList") {
+            if (backHomeBtn) backHomeBtn.style.display = "block";
+            if (backChapListBtn) backChapListBtn.style.display = "none";
+        }
     } catch (e) {
         document.getElementById("content").innerText = "Không thể kết nối tới GitHub";
     }
 };
 
-// ?p=home → load home.html
+// Initialize page based on URL params
 const params = new URLSearchParams(location.search);
-loadPage(params.get("p") || "home");
+const page = params.get("p") || "home";
+loadPage(page).then(() => {
+    // If loading chapList, also load chapters after page is ready
+    if (page === "chapList") {
+        const story = params.get("story");
+        if (story) {
+            setTimeout(() => {
+                loadChapters(decodeURIComponent(story));
+            }, 100);
+        }
+    } else if (page === "home") {
+        // Update latest chapters when home page loads
+        setTimeout(() => {
+            updateLatestChapters();
+        }, 500);
+    }
+});
 
-async function loadChapList(storyName) {
-    const url = "https://raw.githubusercontent.com/huynoobz0/HuynoobzTranslatedComics/refs/heads/main/chapList.html";
-    const res = await fetch(url);
-    const html = await res.text();
-
-    // chèn HTML (chỉ phần body hoặc toàn bộ)
-    document.getElementById("content").innerHTML = html;
-
-    // chạy thủ công script loadChapters
-    if (typeof loadChapters === "function") loadChapters();
+//load chapList.html
+async function openStory(storyName) {
+    const encoded = encodeURIComponent(storyName);
+    const backBtn = document.getElementById("back-home-btn");
+    if (backBtn) backBtn.style.display = "block";
+    
+    // Wait for loadPage to complete before calling loadChapters
+    await loadPage("chapList");
+    
+    // Small delay to ensure DOM is ready
+    setTimeout(() => {
+        loadChapters(storyName);
+    }, 100);
 };
 
-async function loadChapters() {
-    const params = new URLSearchParams(location.search);
-    const story = params.get("story");
-
+async function loadChapters(story) {
+    console.log("loadChapters", story);
+    
+    // Get story from parameter or URL params
     if (!story) {
-        document.getElementById("story-title").innerText = "Lỗi: không có tên truyện.";
+        const params = new URLSearchParams(location.search);
+        story = params.get("story");
+        if (story) {
+            story = decodeURIComponent(story);
+        }
+    }
+
+    const storyTitleEl = document.getElementById("story-title");
+    const chapListEl = document.getElementById("chap-list");
+    
+    if (!story) {
+        if (storyTitleEl) storyTitleEl.innerText = "Lỗi: không có tên truyện.";
+        if (chapListEl) chapListEl.innerText = "Lỗi: không có tên truyện.";
         return;
     }
 
-    document.getElementById("story-title").innerText = story;
+    if (storyTitleEl) {
+        storyTitleEl.innerText = story;
+    }
 
-    const apiUrl = `https://api.github.com/repos/huynoobz0/HuynoobzTranslatedComics/contents/${story}`;
+    // Encode story name for URL
+    const encodedStory = encodeURIComponent(story);
+    const apiUrl = `https://api.github.com/repos/huynoobz0/HuynoobzTranslatedComics/contents/${encodedStory}`;
 
     try {
         const res = await fetch(apiUrl);
-        const data = await res.json();
-
-        if (!Array.isArray(data)) {
-            document.getElementById("chap-list").innerText = "Không thể tải cây thư mục.";
+        
+        // Check if response is OK
+        if (!res.ok) {
+            const errorText = await res.text();
+            if (chapListEl) chapListEl.innerText = `Lỗi HTTP ${res.status}: ${errorText}`;
             return;
         }
 
-        let html = "";
+        const data = await res.json();
 
-        // mỗi folder = Part1, Part2, ...
-        const folders = data.filter(item => item.type === "dir");
-
-        for (const folder of folders) {
-            html += `<div class="folder">
-                        <div class="folder-title">${folder.name}</div>
-                        <div id="f-${folder.name}">Đang tải...</div>
-                     </div>`;
-
-            // load chap trong folder
-            loadFolderChapters(story, folder.name);
+        // Check if data is an error object from GitHub API
+        if (data.message) {
+            if (chapListEl) chapListEl.innerText = `Lỗi GitHub API: ${data.message}`;
+            return;
         }
 
-        document.getElementById("chap-list").innerHTML = html;
+        if (!Array.isArray(data)) {
+            if (chapListEl) chapListEl.innerText = `Không thể tải cây thư mục. Dữ liệu nhận được: ${JSON.stringify(data)}`;
+            return;
+        }
+
+        // Show files at root level if any
+        const rootFiles = data.filter(item => item.type === "file").sort((a, b) => a.name.localeCompare(b.name));
+        const folders = data.filter(item => item.type === "dir").sort((a, b) => a.name.localeCompare(b.name));
+
+        let html = "";
+        
+        // Display root level files
+        for (const file of rootFiles) {
+            const fileUrl = `https://raw.githubusercontent.com/huynoobz0/HuynoobzTranslatedComics/refs/heads/main/${encodedStory}/${encodeURIComponent(file.name)}`;
+            const escapedUrl = fileUrl.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+            const escapedName = file.name.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+            html += `<div class="chap"><a href="#" onclick="loadHtmlFile('${escapedUrl}', '${escapedName}'); return false;">${file.name}</a></div>`;
+        }
+
+        // Recursively load all folders
+        for (const folder of folders) {
+            const folderId = folder.name.replace(/\//g, '_');
+            html += `<div class="folder">
+                        <div class="folder-title">${folder.name}</div>
+                        <div id="f-${folderId}">Đang tải...</div>
+                     </div>`;
+        }
+
+        if (chapListEl) {
+            chapListEl.innerHTML = html;
+        }
+        
+        // Load folders after DOM is updated
+        for (const folder of folders) {
+            const folderId = folder.name.replace(/\//g, '_');
+            loadFolderRecursive(story, folder.name, folderId);
+        }
 
     } catch (e) {
-        document.getElementById("chap-list").innerText = "Lỗi kết nối GitHub.";
+        // Better error message for CORS issues
+        if (e.name === 'TypeError' && e.message.includes('fetch')) {
+            if (chapListEl) chapListEl.innerText = "Lỗi CORS: Không thể kết nối tới GitHub API. Vui lòng chạy từ web server (không dùng file:///).";
+        } else {
+            if (chapListEl) chapListEl.innerText = `Lỗi kết nối GitHub: ${e.message}`;
+        }
+        console.error("Error loading chapters:", e);
     }
 };
 
-function openStory(storyName) {
-    const encoded = encodeURIComponent(storyName);
-    location.href = `?p=chapList&story=${encoded}`;
-    loadChapters();
-};
+async function loadFolderRecursive(storyName, folderPath, folderId) {
+    const encodedStory = encodeURIComponent(storyName);
+    const encodedFolder = encodeURIComponent(folderPath);
+    const apiUrl = `https://api.github.com/repos/huynoobz0/HuynoobzTranslatedComics/contents/${encodedStory}/${encodedFolder}`;
+    const folderDiv = document.getElementById(`f-${folderId}`);
+
+    console.log("loadFolderRecursive:", { storyName, folderPath, folderId, apiUrl, folderDiv: !!folderDiv });
+
+    if (!folderDiv) {
+        console.error("Folder div not found:", `f-${folderId}`);
+        return;
+    }
+
+    try {
+        const res = await fetch(apiUrl);
+        
+        if (!res.ok) {
+            folderDiv.innerText = `Lỗi HTTP ${res.status}`;
+            return;
+        }
+
+        const data = await res.json();
+        
+        console.log("Folder data received:", { folderPath, dataLength: Array.isArray(data) ? data.length : 'not array', data });
+
+        if (data.message) {
+            folderDiv.innerText = `Lỗi: ${data.message}`;
+            return;
+        }
+
+        if (!Array.isArray(data)) {
+            folderDiv.innerText = "Không thể tải danh sách.";
+            return;
+        }
+
+        // Separate files and folders
+        const files = data.filter(item => item.type === "file").sort((a, b) => a.name.localeCompare(b.name));
+        const subFolders = data.filter(item => item.type === "dir").sort((a, b) => a.name.localeCompare(b.name));
+        
+        console.log("Files:", files.length, "Subfolders:", subFolders.length);
+
+        let html = "";
+        
+        // Display files in current folder
+        for (const file of files) {
+            const fileUrl = `https://raw.githubusercontent.com/huynoobz0/HuynoobzTranslatedComics/refs/heads/main/${encodedStory}/${encodedFolder}/${encodeURIComponent(file.name)}`;
+            const escapedUrl = fileUrl.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+            const escapedName = file.name.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+            html += `<div class="chap"><a href="#" onclick="loadHtmlFile('${escapedUrl}', '${escapedName}'); return false;">${file.name}</a></div>`;
+        }
+
+        // Add subfolders to HTML first
+        const subFolderData = [];
+        for (const subFolder of subFolders) {
+            const subFolderPath = folderPath ? `${folderPath}/${subFolder.name}` : subFolder.name;
+            const subFolderId = subFolderPath.replace(/\//g, '_');
+            html += `<div class="folder">
+                        <div class="folder-title">${subFolder.name}</div>
+                        <div id="f-${subFolderId}">Đang tải...</div>
+                     </div>`;
+            subFolderData.push({ path: subFolderPath, id: subFolderId });
+        }
+
+        // Set HTML first so DOM elements exist
+        if (html === "" && files.length === 0 && subFolders.length === 0) {
+            folderDiv.innerText = "Thư mục trống.";
+        } else {
+            folderDiv.innerHTML = html;
+        }
+        
+        // Now recursively load subfolders after DOM is updated
+        for (const subFolder of subFolderData) {
+            loadFolderRecursive(storyName, subFolder.path, subFolder.id);
+        }
+
+    } catch (e) {
+        if (e.name === 'TypeError' && e.message.includes('fetch')) {
+            folderDiv.innerText = "Lỗi CORS";
+        } else {
+            folderDiv.innerText = `Lỗi: ${e.message}`;
+        }
+        console.error("Error loading folder:", e);
+    }
+}
+
+// Store chapter list HTML for restoration
+let savedChapListHtml = null;
+
+// Load HTML file content
+async function loadHtmlFile(fileUrl, fileName) {
+    const contentDiv = document.getElementById("content");
+    const backHomeBtn = document.getElementById("back-home-btn");
+    const backChapListBtn = document.getElementById("back-chaplist-btn");
+    
+    // Save current chapter list HTML if viewing chapter list
+    if (contentDiv && contentDiv.querySelector("#chap-list")) {
+        savedChapListHtml = contentDiv.innerHTML;
+    }
+    
+    try {
+        // Show loading
+        contentDiv.innerHTML = `<div style="padding: 20px; text-align: center;">Đang tải ${fileName}...</div>`;
+        
+        // Fetch HTML file
+        const res = await fetch(fileUrl);
+        if (!res.ok) {
+            contentDiv.innerHTML = `<div style="padding: 20px;">Lỗi tải file: HTTP ${res.status}</div>`;
+            return;
+        }
+        
+        const html = await res.text();
+        
+        // Load the HTML content
+        contentDiv.innerHTML = html;
+        
+        // Show back buttons
+        if (backHomeBtn) backHomeBtn.style.display = "block";
+        if (backChapListBtn) backChapListBtn.style.display = "block";
+        
+    } catch (e) {
+        contentDiv.innerHTML = `<div style="padding: 20px;">Lỗi: ${e.message}</div>`;
+        console.error("Error loading HTML file:", e);
+    }
+}
+
+// Back to chapter list handler
+function backToChapList() {
+    const contentDiv = document.getElementById("content");
+    const backChapListBtn = document.getElementById("back-chaplist-btn");
+    
+    if (savedChapListHtml) {
+        contentDiv.innerHTML = savedChapListHtml;
+        if (backChapListBtn) backChapListBtn.style.display = "none";
+    } else {
+        // If no saved HTML, reload the chapter list page
+        const params = new URLSearchParams(location.search);
+        const story = params.get("story");
+        if (story) {
+            loadPage("chapList").then(() => {
+                setTimeout(() => {
+                    loadChapters(decodeURIComponent(story));
+                }, 100);
+            });
+        }
+    }
+}
+
+// Back button handlers
+const backHomeBtn = document.getElementById("back-home-btn");
+if (backHomeBtn) {
+    backHomeBtn.addEventListener("click", () => {
+        location.href = "?p=home";
+    });
+}
+
+const backChapListBtn = document.getElementById("back-chaplist-btn");
+if (backChapListBtn) {
+    backChapListBtn.addEventListener("click", backToChapList);
+}
+
+// Get latest chapter number from a story directory
+// Recursively searches all files and finds the highest chapter number
+// Chapter files should be named like: 1.0.html, 1.5.html, 2.0.html, etc.
+async function getLatestChap(storyDir) {
+    if (!storyDir) return null;
+    
+    try {
+        const encodedDir = encodeURIComponent(storyDir);
+        const apiUrl = `https://api.github.com/repos/huynoobz0/HuynoobzTranslatedComics/contents/${encodedDir}`;
+        
+        const res = await fetch(apiUrl);
+        if (!res.ok) {
+            console.error("Error fetching directory:", res.status);
+            return null;
+        }
+        
+        const data = await res.json();
+        if (data.message || !Array.isArray(data)) {
+            return null;
+        }
+        
+        let maxChap = null;
+        
+        // Recursively process all items
+        for (const item of data) {
+            if (item.type === "file") {
+                // Check if file matches pattern: <float>.html
+                const match = item.name.match(/^(\d+\.?\d*)\.html$/);
+                if (match) {
+                    const chapNum = parseFloat(match[1]);
+                    if (maxChap === null || chapNum > maxChap) {
+                        maxChap = chapNum;
+                    }
+                }
+            } else if (item.type === "dir") {
+                // Recursively search subdirectories
+                const subDir = storyDir ? `${storyDir}/${item.name}` : item.name;
+                const subMaxChap = await getLatestChap(subDir);
+                if (subMaxChap !== null && (maxChap === null || subMaxChap > maxChap)) {
+                    maxChap = subMaxChap;
+                }
+            }
+        }
+        
+        return maxChap;
+    } catch (e) {
+        console.error("Error in getLatestChap:", e);
+        return null;
+    }
+}
+
+// Update latest chapter for all stories when home page loads
+async function updateLatestChapters() {
+    const latestChapterDivs = document.querySelectorAll(".latest-chapter");
+    
+    for (const div of latestChapterDivs) {
+        const storyDir = div.getAttribute("data-story-dir");
+        if (storyDir) {
+            const latestChap = await getLatestChap(storyDir);
+            const boldEl = div.querySelector("b");
+            if (boldEl) {
+                if (latestChap !== null) {
+                    boldEl.textContent = latestChap.toString();
+                } else {
+                    boldEl.textContent = "—";
+                }
+            }
+        }
+    }
+}
+
 
 </script>
 
