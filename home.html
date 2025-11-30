@@ -126,14 +126,58 @@
 
 </div>
 
-<!-- FLOAT HOME BUTTON -->
-<a id="home-floating-btn" href="?p=home">Trang chủ</a>
+<button id="back-home-btn" style="display:none; position: fixed; bottom: 20px; right: 20px; padding: 10px 15px; font-size: 14px;">Trang chủ</button>
 
 <script>
-function openStory(storyName) {
-    const encoded = encodeURIComponent(storyName);
-    location.href = `?p=chapList&story=${encoded}`;
-}
+// khi click vào truyện
+document.querySelectorAll(".story").forEach(storyDiv => {
+    storyDiv.addEventListener("click", async () => {
+        const storyName = storyDiv.dataset.story;
+
+        // hiển thị nút trở về home
+        const backBtn = document.getElementById("back-home-btn");
+        backBtn.style.display = "block";
+
+        // fetch chapList.html từ GitHub
+        try {
+            const res = await fetch("https://raw.githubusercontent.com/huynoobz0/HuynoobzTranslatedComics/refs/heads/main/chapList.html");
+            let html = await res.text();
+
+            // chèn vào #content
+            const contentDiv = document.getElementById("content");
+            contentDiv.innerHTML = html;
+
+            // update URL param để chapList biết truyện nào
+            const newUrl = new URL(window.location);
+            newUrl.searchParams.set("p", "chapList");
+            newUrl.searchParams.set("story", storyName);
+            window.history.pushState({}, "", newUrl);
+
+            // gọi loadChapters() sau khi chapList.html được chèn
+            if (typeof loadChapters === "function") loadChapters();
+
+        } catch (e) {
+            alert("Không thể tải danh sách chap từ GitHub");
+        }
+    });
+});
+
+// sự kiện click nút trở về home
+document.getElementById("back-home-btn").addEventListener("click", async () => {
+    // ẩn nút
+    document.getElementById("back-home-btn").style.display = "none";
+
+    // load lại home.html
+    const res = await fetch("https://raw.githubusercontent.com/huynoobz0/HuynoobzTranslatedComics/refs/heads/main/home.html");
+    const html = await res.text();
+    document.getElementById("content").innerHTML = html;
+
+    // update URL
+    const newUrl = new URL(window.location);
+    newUrl.searchParams.set("p", "home");
+    newUrl.searchParams.delete("story");
+    window.history.pushState({}, "", newUrl);
+});
 </script>
 
 </body>

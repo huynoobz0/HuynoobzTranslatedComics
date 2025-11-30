@@ -30,6 +30,12 @@ async function loadPage(page) {
 // ?p=home → load home.html
 const params = new URLSearchParams(location.search);
 loadPage(params.get("p") || "home");
+
+function openStory(storyName) {
+    const encoded = encodeURIComponent(storyName);
+    location.href = `?p=chapList&story=${encoded}`;
+};
+
 </script>
 
 </body>
