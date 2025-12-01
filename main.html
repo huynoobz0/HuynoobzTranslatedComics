@@ -233,6 +233,85 @@ function numericSort(a, b) {
     return a.name.localeCompare(b.name);
 }
 
+// Cache utility for GitHub API responses (1 hour expiration)
+const CACHE_EXPIRY = 60 * 60 * 1000; // 1 hour in milliseconds
+
+function getCachedData(key) {
+    try {
+        const cached = localStorage.getItem(`gh_cache_${key}`);
+        if (!cached) return null;
+        
+        const { data, timestamp } = JSON.parse(cached);
+        const now = Date.now();
+        
+        // Check if cache is still valid (within 1 hour)
+        if (now - timestamp < CACHE_EXPIRY) {
+            return data;
+        } else {
+            // Cache expired, remove it
+            localStorage.removeItem(`gh_cache_${key}`);
+            return null;
+        }
+    } catch (e) {
+        console.error("Error reading cache:", e);
+        return null;
+    }
+}
+
+function setCachedData(key, data) {
+    try {
+        const cacheData = {
+            data: data,
+            timestamp: Date.now()
+        };
+        localStorage.setItem(`gh_cache_${key}`, JSON.stringify(cacheData));
+    } catch (e) {
+        console.error("Error writing cache:", e);
+        // If storage is full, try to clear old cache entries
+        try {
+            const keys = Object.keys(localStorage);
+            keys.filter(k => k.startsWith('gh_cache_')).forEach(k => localStorage.removeItem(k));
+            localStorage.setItem(`gh_cache_${key}`, JSON.stringify(cacheData));
+        } catch (e2) {
+            console.error("Failed to clear cache:", e2);
+        }
+    }
+}
+
+// Cached fetch function for GitHub API
+async function cachedFetch(apiUrl) {
+    // Use URL as cache key
+    const cacheKey = apiUrl;
+    
+    // Check cache first
+    const cachedData = getCachedData(cacheKey);
+    if (cachedData !== null) {
+        console.log("Using cached data for:", apiUrl);
+        return cachedData;
+    }
+    
+    // Fetch from API
+    console.log("Fetching from API:", apiUrl);
+    const res = await fetch(apiUrl);
+    
+    if (!res.ok) {
+        const errorText = await res.text();
+        throw { status: res.status, message: errorText };
+    }
+    
+    const data = await res.json();
+    
+    // Check if data is an error object from GitHub API
+    if (data.message) {
+        throw { status: res.status, message: data.message };
+    }
+    
+    // Cache the response
+    setCachedData(cacheKey, data);
+    
+    return data;
+}
+
 async function loadChapters(story) {
     console.log("loadChapters", story);
     
@@ -263,22 +342,7 @@ async function loadChapters(story) {
     const apiUrl = `https://api.github.com/repos/huynoobz0/HuynoobzTranslatedComics/contents/${encodedStory}`;
 
     try {
-        const res = await fetch(apiUrl);
-        
-        // Check if response is OK
-        if (!res.ok) {
-            const errorText = await res.text();
-            if (chapListEl) chapListEl.innerText = `Lỗi HTTP ${res.status}: ${errorText}`;
-            return;
-        }
-
-        const data = await res.json();
-
-        // Check if data is an error object from GitHub API
-        if (data.message) {
-            if (chapListEl) chapListEl.innerText = `Lỗi GitHub API: ${data.message}`;
-            return;
-        }
+        const data = await cachedFetch(apiUrl);
 
         if (!Array.isArray(data)) {
             if (chapListEl) chapListEl.innerText = `Không thể tải cây thư mục. Dữ liệu nhận được: ${JSON.stringify(data)}`;
@@ -343,21 +407,9 @@ async function loadFolderRecursive(storyName, folderPath, folderId) {
     }
 
     try {
-        const res = await fetch(apiUrl);
-        
-        if (!res.ok) {
-            folderDiv.innerText = `Lỗi HTTP ${res.status}`;
-            return;
-        }
-
-        const data = await res.json();
+        const data = await cachedFetch(apiUrl);
         
         console.log("Folder data received:", { folderPath, dataLength: Array.isArray(data) ? data.length : 'not array', data });
-
-        if (data.message) {
-            folderDiv.innerText = `Lỗi: ${data.message}`;
-            return;
-        }
 
         if (!Array.isArray(data)) {
             folderDiv.innerText = "Không thể tải danh sách.";
@@ -405,12 +457,16 @@ async function loadFolderRecursive(storyName, folderPath, folderId) {
         }
 
     } catch (e) {
-        if (e.name === 'TypeError' && e.message.includes('fetch')) {
+        if (error.name === 'TypeError' && error.message.includes('fetch')) {
             folderDiv.innerText = "Lỗi CORS";
+        } else if (error.status) {
+            folderDiv.innerText = `Lỗi HTTP ${error.status}`;
+        } else if (error.message) {
+            folderDiv.innerText = `Lỗi: ${error.message}`;
         } else {
-            folderDiv.innerText = `Lỗi: ${e.message}`;
+            folderDiv.innerText = `Lỗi: ${error}`;
         }
-        console.error("Error loading folder:", e);
+        console.error("Error loading folder:", error);
     }
 }
 
@@ -553,6 +609,43 @@ if (document.readyState === 'loading') {
     initWidthControls();
 }
 
+// Remove third-party injected div
+function removeThirdPartyDiv() {
+    // Find div with the specific styling pattern
+    const allDivs = document.querySelectorAll('div');
+    for (const div of allDivs) {
+        const style = div.getAttribute('style');
+        if (style && 
+            style.includes('position: fixed') && 
+            style.includes('bottom: 0%') && 
+            style.includes('left: 0%') && 
+            style.includes('right: 0%') && 
+            style.includes('width: 100%') && 
+            style.includes('height: 55px') && 
+            style.includes('z-index: 9999')) {
+            console.log("Removing third-party div");
+            div.remove();
+            return true;
+        }
+    }
+    return false;
+}
+
+// Use MutationObserver to watch for DOM changes
+const observer = new MutationObserver((mutations) => {
+    removeThirdPartyDiv();
+});
+
+// Start observing
+observer.observe(document.body, {
+    childList: true,
+    subtree: true
+});
+
+// Also check immediately and periodically as backup
+removeThirdPartyDiv();
+setInterval(removeThirdPartyDiv, 1000);
+
 // Back button handlers
 const backHomeBtn = document.getElementById("back-home-btn");
 if (backHomeBtn) {
@@ -577,14 +670,8 @@ async function getLatestChap(storyDir) {
         const encodedDir = encodeURIComponent(storyDir);
         const apiUrl = `https://api.github.com/repos/huynoobz0/HuynoobzTranslatedComics/contents/${encodedDir}`;
         
-        const res = await fetch(apiUrl);
-        if (!res.ok) {
-            console.error("Error fetching directory:", res.status);
-            return null;
-        }
-        
-        const data = await res.json();
-        if (data.message || !Array.isArray(data)) {
+        const data = await cachedFetch(apiUrl);
+        if (!Array.isArray(data)) {
             return null;
         }
         
