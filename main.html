@@ -1,0 +1,1937 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+    html, body {
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100%;
+    }
+
+    body {
+        margin: 0;
+        padding: 0;
+        font-family: Arial, sans-serif;
+        overflow-x: hidden;
+        background: #f5f5f5;
+        transition: background-color 0.25s ease;
+    }
+
+    body.reading-mode {
+        /* Neutral gray improves contrast around mostly white chapter pages/images. */
+        background: #d9d9d9;
+    }
+    
+    :root {
+        --header-pad-y: 15px;
+        --header-pad-x: 20px;
+        --header-gap: 10px;
+        --btn-pad-y: 8px;
+        --btn-pad-x: 15px;
+        --btn-font: 14px;
+    }
+
+    #header-bar {
+        background: #222;
+        color: #fff;
+        padding: var(--header-pad-y) var(--header-pad-x);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: var(--header-gap);
+        flex-wrap: wrap;
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    #header-title {
+        font-size: 20px;
+        font-weight: bold;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        min-width: 180px;
+    }
+    
+    #header-title-text {
+        font-size: 20px;
+        font-weight: bold;
+    }
+    
+    #header-buttons {
+        display: flex;
+        gap: var(--header-gap);
+        align-items: center;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+    
+    #nav-controls {
+        display: none;
+        align-items: center;
+        gap: 8px;
+        margin-right: 6px;
+    }
+
+    #nav-controls button {
+        background: #444;
+        color: #fff;
+        border: none;
+        padding: 6px 10px;
+        font-size: var(--btn-font);
+        cursor: pointer;
+        border-radius: 4px;
+        transition: background 0.2s;
+    }
+
+    #nav-controls button:hover {
+        background: #555;
+    }
+
+    #nav-controls button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    #chap-select {
+        font-size: 12px;
+        color: #fff;
+        background: #333;
+        border: 1px solid #555;
+        border-radius: 6px;
+        padding: 6px 8px;
+        max-width: 160px;
+        min-height: 34px;
+        width: 160px;
+    }
+
+    #chap-select:disabled {
+        opacity: 0.6;
+    }
+
+    #header-buttons button {
+        background: #444;
+        color: #fff;
+        border: none;
+        padding: var(--btn-pad-y) var(--btn-pad-x);
+        font-size: var(--btn-font);
+        cursor: pointer;
+        border-radius: 4px;
+        transition: background 0.2s;
+        min-height: 36px; /* better tap target */
+    }
+    
+    #header-buttons button:hover {
+        background: #555;
+    }
+    
+    #header-buttons button:disabled {
+        display: none;
+    }
+    
+    #width-controls {
+        display: none;
+        align-items: center;
+        gap: 8px;
+        margin-right: 10px;
+    }
+    
+    #width-controls button {
+        background: #444;
+        color: #fff;
+        border: none;
+        padding: 5px 10px;
+        font-size: 16px;
+        cursor: pointer;
+        border-radius: 4px;
+        width: 34px;
+        height: 34px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    #width-controls button:hover {
+        background: #555;
+    }
+    
+    #width-display {
+        color: #fff;
+        font-size: 14px;
+        min-width: 60px;
+        text-align: center;
+    }
+
+    #magnifier-controls {
+        display: none;
+        align-items: center;
+        gap: 8px;
+        margin-right: 10px;
+    }
+
+    #magnifier-controls button {
+        background: #444;
+        color: #fff;
+        border: none;
+        padding: 5px 10px;
+        font-size: 16px;
+        cursor: pointer;
+        border-radius: 4px;
+        width: 34px;
+        height: 34px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    #magnifier-controls button:hover {
+        background: #555;
+    }
+
+    #magnifier-display {
+        color: #fff;
+        font-size: 14px;
+        min-width: 50px;
+        text-align: center;
+    }
+
+    #content {
+        min-height: calc(100vh - 60px);
+    }
+
+    #footer-bar {
+        background: linear-gradient(90deg, #1f1f1f, #262626);
+        color: #fff;
+        padding: 14px 16px;
+        display: flex;
+        justify-content: center;
+        align-items: stretch;
+        gap: 12px;
+        flex-wrap: wrap;
+        border-top: 1px solid #3a3a3a;
+    }
+
+    .footer-card {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 10px;
+        padding: 10px 12px;
+        min-width: 280px;
+        max-width: 560px;
+    }
+
+    .footer-icon {
+        font-size: 18px;
+        line-height: 1.2;
+        margin-top: 1px;
+    }
+
+    .footer-text {
+        font-size: 13px;
+        color: #e7e7e7;
+        line-height: 1.45;
+    }
+
+    .footer-text a {
+        color: #fff;
+        font-weight: 700;
+        text-decoration: none;
+        border-bottom: 1px dotted rgba(255, 255, 255, 0.55);
+    }
+
+    .footer-text a:hover {
+        color: #f8f8f8;
+        border-bottom-color: #fff;
+    }
+    
+    #content.viewing-chapter {
+        margin: 0 auto;
+        padding: 0;
+        transition: max-width 0.3s ease;
+    }
+    
+    #content.viewing-chapter > * {
+        max-width: 100%;
+        margin: 0 auto;
+    }
+
+    #content.viewing-chapter img {
+        display: block;
+        max-width: 100%;
+        height: auto;
+        margin: 0 auto;
+    }
+
+    #content.viewing-chapter {
+        cursor: zoom-in;
+    }
+
+    #content.viewing-chapter img {
+        cursor: zoom-in;
+        -webkit-user-drag: none;
+    }
+
+    #content.viewing-chapter.magnifier-active,
+    #content.viewing-chapter.magnifier-active img {
+        cursor: none !important;
+    }
+
+    #chapter-magnifier-lens {
+        position: fixed;
+        width: 220px;
+        height: 220px;
+        border-radius: 50%;
+        border: 2px solid rgba(255, 255, 255, 0.95);
+        box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+        pointer-events: none;
+        z-index: 3000;
+        display: none;
+        background-repeat: no-repeat;
+        background-color: rgba(20, 20, 20, 0.7);
+    }
+
+    .chap.last-read a {
+        font-weight: 700;
+        color: #ffcc66;
+    }
+
+    .chap.last-read::before {
+        content: "⟲ ";
+        color: #ffcc66;
+        font-weight: 700;
+    }
+
+    .container {
+        max-width: 900px;
+        margin: 24px auto;
+        padding: 0 16px 20px;
+    }
+
+    .story {
+        background: #fff;
+        color: #111;
+        padding: 15px 20px;
+        border-radius: 8px;
+        margin-bottom: 15px;
+        border-left: 5px solid #222;
+        cursor: pointer;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    }
+
+    .story:hover {
+        background: #f5f5f5;
+    }
+
+    .story-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .story-title {
+        font-size: 20px;
+        font-weight: 700;
+    }
+
+    .story-status {
+        color: #555;
+        font-size: 14px;
+        margin-left: 10px;
+        white-space: nowrap;
+    }
+
+    .latest-chapter {
+        margin-top: 6px;
+        font-size: 14px;
+        color: #333;
+    }
+
+    #story-title {
+        max-width: 900px;
+        margin: 20px auto 10px;
+        padding: 0 16px;
+        font-size: 22px;
+        color: #111;
+    }
+
+    #chap-list {
+        max-width: 900px;
+        margin: 0 auto 24px;
+        padding: 0 16px;
+        color: #111;
+    }
+
+    .folder {
+        margin-top: 15px;
+        padding-left: 10px;
+        border-left: 3px solid #222;
+    }
+
+    .folder-title {
+        font-size: 18px;
+        font-weight: 700;
+        margin-bottom: 5px;
+    }
+
+    .chap {
+        margin-left: 15px;
+        font-size: 15px;
+        margin-bottom: 3px;
+    }
+
+    .chap a {
+        text-decoration: none;
+        color: #0070cc;
+    }
+
+    .chap a:hover {
+        text-decoration: underline;
+    }
+
+    /* ===== Responsive tweaks ===== */
+    @media (max-width: 768px) {
+        :root {
+            --header-pad-y: 12px;
+            --header-pad-x: 12px;
+            --header-gap: 8px;
+        }
+
+        #header-title-text {
+            font-size: 18px;
+        }
+
+        #content.viewing-chapter {
+            padding: 0;
+        }
+    }
+
+    @media (max-width: 480px) {
+        :root {
+            --header-pad-y: 10px;
+            --header-pad-x: 10px;
+            --btn-pad-y: 8px;
+            --btn-pad-x: 12px;
+            --btn-font: 13px;
+            --header-gap: 6px;
+        }
+
+        #header-title {
+            min-width: 140px;
+        }
+
+        #header-title-text {
+            font-size: 16px;
+        }
+
+        #chap-select {
+            width: 130px;
+            max-width: 130px;
+        }
+
+        #nav-controls {
+            gap: 6px;
+            margin-right: 0;
+        }
+
+        #content.viewing-chapter {
+            padding: 0;
+        }
+
+        #footer-bar {
+            padding: 10px;
+            gap: 8px;
+        }
+
+        .footer-card {
+            min-width: 0;
+            width: 100%;
+        }
+    }
+</style>
+</head>
+
+<body>
+<div id="header-bar">
+    <div id="header-title">
+        <div id="header-title-text">Truyện do Huynoobz dịch</div>
+    </div>
+    <div id="header-buttons">
+        <div id="nav-controls">
+            <button id="prev-chap-btn" title="Chap trước">‹</button>
+            <select id="chap-select" aria-label="Chọn chap để nhảy"></select>
+            <button id="next-chap-btn" title="Chap sau">›</button>
+        </div>
+        <div id="width-controls">
+            <button id="width-decrease" title="Giảm độ rộng">−</button>
+            <span id="width-display">800px</span>
+            <button id="width-increase" title="Tăng độ rộng">+</button>
+        </div>
+        <div id="magnifier-controls">
+            <button id="magnifier-decrease" title="Giảm phóng to kính lúp">−</button>
+            <span id="magnifier-display">2.2x</span>
+            <button id="magnifier-increase" title="Tăng phóng to kính lúp">+</button>
+        </div>
+        <button id="back-chaplist-btn" style="display:none;">Danh sách chap</button>
+        <button id="back-home-btn" style="display:none;">Trang chủ</button>
+    </div>
+</div>
+<div id="content">Đang tải...</div>
+<div id="footer-bar">
+    <div class="footer-card">
+        <span class="footer-icon">📦</span>
+        <div class="footer-text">
+            <a href="https://github.com/huynoobz0/HuynoobzTranslatedComics" target="_blank" rel="noopener noreferrer">GitHub</a>:
+            Nếu bị lỗi mọi người có thể vào đây để tải truyện.
+        </div>
+    </div>
+    <!--<div class="footer-card">
+        <span class="footer-icon">📘</span>
+        <div class="footer-text">
+            <a href="https://www.facebook.com/profile.php?id=61587665182379" target="_blank" rel="noopener noreferrer">Facebook</a>:
+            Hãy theo dõi page của tôi để thuận tiện nhận các cập nhật.
+        </div>
+    </div>-->
+</div>
+
+<script>
+// ====== App config ======
+const DEBUG = false;
+const log = (...args) => { if (DEBUG) console.log(...args); };
+
+function decodeStoryParam(searchParams) {
+    const p = searchParams || new URLSearchParams(location.search);
+    const story = p.get("story");
+    return story ? decodeURIComponent(story) : null;
+}
+
+function setHeaderButtons(showBackHome, showBackChapList) {
+    const backHomeBtn = document.getElementById("back-home-btn");
+    const backChapListBtn = document.getElementById("back-chaplist-btn");
+    if (backHomeBtn) backHomeBtn.style.display = showBackHome ? "inline-block" : "none";
+    if (backChapListBtn) backChapListBtn.style.display = showBackChapList ? "inline-block" : "none";
+}
+
+function scheduleLoadChapters(storyName, delayMs = 100) {
+    setTimeout(() => {
+        if (storyName) loadChapters(storyName);
+    }, delayMs);
+}
+
+// ====== Data source: comicList.txt ======
+let comicListCache = null;
+const COMIC_LIST_URL = "https://raw.githubusercontent.com/huynoobz0/HuynoobzTranslatedComics/refs/heads/main/comicList.txt";
+const REPO_RAW_ROOT = "https://raw.githubusercontent.com/huynoobz0/HuynoobzTranslatedComics/refs/heads/main";
+const GITHUB_CONTENTS_API_URL = "https://api.github.com/repos/huynoobz0/HuynoobzTranslatedComics/contents";
+const CHAPTER_DONATORS_PAGE_URL = `${REPO_RAW_ROOT}/donators.html`;
+const CHAPTER_DONATE_PAGE_URL = `${REPO_RAW_ROOT}/donate.html`;
+
+function parseComicListText(rawText) {
+    return rawText
+        .split(/\r?\n/)
+        .map(line => line.trim())
+        .filter(line => line && !line.startsWith("#"))
+        .map(line => {
+            const parts = line.split("\t");
+            const storyDir = (parts[0] || "").trim();
+            if (!storyDir) return null;
+            const title = (parts[1] || storyDir).trim();
+            const status = (parts[2] || "").trim();
+            const rawLatestDir = (parts[3] || "").trim();
+            let latestDir = storyDir;
+            if (rawLatestDir) {
+                const normalized = rawLatestDir.replace(/^\/+|\/+$/g, "");
+                // Backward compatible:
+                // - New format: subdir only (e.g. "Part2") => storyDir/Part2
+                // - Old format: full path (e.g. "Story/Part2" or "Story") => keep as-is
+                if (normalized === storyDir || normalized.startsWith(`${storyDir}/`)) {
+                    latestDir = normalized;
+                } else {
+                    latestDir = `${storyDir}/${normalized}`;
+                }
+            }
+            const hasLatestDirOverride = rawLatestDir.length > 0;
+            return { storyDir, title, status, latestDir, rawLatestDir, hasLatestDirOverride };
+        })
+        .filter(Boolean);
+}
+
+async function getComicList() {
+    if (Array.isArray(comicListCache)) return comicListCache;
+    const res = await fetch(COMIC_LIST_URL, { cache: "no-store" });
+    if (!res.ok) throw new Error(`Không tải được comicList.txt (HTTP ${res.status})`);
+    const txt = await res.text();
+    const parsed = parseComicListText(txt);
+    comicListCache = parsed;
+    return parsed;
+}
+
+function renderHomePage() {
+    const content = document.getElementById("content");
+    if (!content) return;
+    content.replaceChildren();
+
+    const container = document.createElement("div");
+    container.className = "container";
+    container.textContent = "Đang tải danh sách truyện...";
+    content.appendChild(container);
+
+    getComicList().then(comics => {
+        container.replaceChildren();
+        if (!comics.length) {
+            container.textContent = "Chưa có dữ liệu truyện trong comicList.txt";
+            return;
+        }
+
+        for (const comic of comics) {
+            const storyDiv = document.createElement("div");
+            storyDiv.className = "story";
+            storyDiv.addEventListener("click", () => openStory(comic.storyDir));
+
+            const header = document.createElement("div");
+            header.className = "story-header";
+
+            const titleEl = document.createElement("div");
+            titleEl.className = "story-title";
+            titleEl.textContent = comic.title;
+
+            const statusEl = document.createElement("div");
+            statusEl.className = "story-status";
+            statusEl.textContent = comic.status || "—";
+
+            header.appendChild(titleEl);
+            header.appendChild(statusEl);
+
+            const latest = document.createElement("div");
+            latest.className = "latest-chapter";
+            latest.setAttribute("data-story-dir", comic.latestDir);
+            latest.setAttribute("data-latest-dir-display", comic.rawLatestDir || "");
+            latest.setAttribute("data-show-dir-prefix", comic.hasLatestDirOverride ? "1" : "0");
+            latest.appendChild(document.createTextNode("Chap mới nhất: "));
+            const latestValue = document.createElement("b");
+            latestValue.textContent = "—";
+            latest.appendChild(latestValue);
+
+            storyDiv.appendChild(header);
+            storyDiv.appendChild(latest);
+            container.appendChild(storyDiv);
+        }
+
+        updateLatestChapters();
+    }).catch(err => {
+        container.textContent = `Lỗi tải comicList.txt: ${err?.message || err}`;
+    });
+}
+
+function renderChapListShell() {
+    const content = document.getElementById("content");
+    if (!content) return;
+    content.replaceChildren();
+
+    const title = document.createElement("h1");
+    title.id = "story-title";
+    title.textContent = "Đang tải...";
+
+    const list = document.createElement("div");
+    list.id = "chap-list";
+    list.textContent = "Đang tải danh sách chap...";
+
+    content.appendChild(title);
+    content.appendChild(list);
+}
+
+function sanitizeRemoteHtml(rawHtml) {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(rawHtml, "text/html");
+    const blockedTags = ["script", "iframe", "object", "embed", "link", "meta", "base", "form", "input", "button", "textarea", "select"];
+    for (const tag of blockedTags) {
+        doc.querySelectorAll(tag).forEach(el => el.remove());
+    }
+
+    const nodes = doc.body.querySelectorAll("*");
+    for (const el of nodes) {
+        const attrNames = el.getAttributeNames();
+        for (const name of attrNames) {
+            const n = name.toLowerCase();
+            const value = (el.getAttribute(name) || "").trim();
+            const low = value.toLowerCase();
+            if (n.startsWith("on")) {
+                el.removeAttribute(name);
+                continue;
+            }
+            if ((n === "href" || n === "src" || n === "xlink:href") && low.startsWith("javascript:")) {
+                el.removeAttribute(name);
+            }
+        }
+    }
+
+    return doc.body.innerHTML;
+}
+
+// ====== Navigation: load pages ======
+async function loadPage(page) {
+    if (page === "home") {
+        renderHomePage();
+        setHeaderButtons(false, false);
+        showNavControls(false);
+        showWidthControls(false);
+        return;
+    }
+
+    if (page === "chapList") {
+        renderChapListShell();
+        setHeaderButtons(true, false);
+        showNavControls(false);
+        showWidthControls(false);
+        return;
+    }
+
+    const content = document.getElementById("content");
+    if (content) content.innerText = "Trang không tồn tại";
+}
+
+// Initialize page based on URL params
+const params = new URLSearchParams(location.search);
+const page = params.get("p") || "home";
+const quickAccessPath = params.get("path");
+
+function normalizeQuickPath(pathValue) {
+    if (!pathValue) return "";
+    return pathValue
+        .trim()
+        .replace(/^['"]+|['"]+$/g, "")
+        .replace(/\\/g, "/")
+        .replace(/^\/+|\/+$/g, "");
+}
+
+function buildQuickAccessTarget(pathValue) {
+    const normalizedPath = normalizeQuickPath(pathValue);
+    if (!normalizedPath) return null;
+
+    const segments = normalizedPath.split("/").filter(Boolean);
+    if (segments.length < 2) return null;
+
+    const chapterName = segments[segments.length - 1];
+    if (!chapterName.toLowerCase().endsWith(".html")) return null;
+
+    const storyName = segments[0];
+    const storySeg = encodeURIComponent(storyName);
+    const chapterSeg = segments.slice(1).map(seg => encodeURIComponent(seg)).join("/");
+    const chapterUrl = `${REPO_RAW_ROOT}/${storySeg}/${chapterSeg}`;
+
+    return { storyName, chapterName, chapterUrl };
+}
+
+async function openChapterByQuickAccess(pathValue) {
+    const target = buildQuickAccessTarget(pathValue);
+    if (!target) {
+        renderQuickAccessError(pathValue || "", "Path không hợp lệ");
+        return true;
+    }
+
+    currentStoryName = target.storyName;
+    startChapterIndexBuild(target.storyName);
+
+    await loadHtmlFile(target.chapterUrl, target.chapterName, { isQuickAccess: true });
+    return true;
+}
+
+async function bootstrapInitialPage() {
+    if (quickAccessPath !== null) {
+        await openChapterByQuickAccess(quickAccessPath);
+        return;
+    }
+
+    await loadPage(page);
+    // If loading chapList, also load chapters after page is ready
+    if (page === "chapList") {
+        scheduleLoadChapters(decodeStoryParam(params));
+    }
+}
+
+// Defer bootstrap so module-level reading state has been initialized first.
+setTimeout(() => {
+    bootstrapInitialPage();
+}, 0);
+
+//load chapList.html
+async function openStory(storyName) {
+    setHeaderButtons(true, false);
+    
+    // Wait for loadPage to complete before calling loadChapters
+    await loadPage("chapList");
+    
+    // Small delay to ensure DOM is ready
+    scheduleLoadChapters(storyName);
+};
+
+// ====== Utilities ======
+// Numeric sorting function for filenames
+function numericSort(a, b) {
+    // Extract numbers from filename (e.g., "1.html" -> 1, "1.5.html" -> 1.5, "10.html" -> 10)
+    const getNumericValue = (name) => {
+        const match = name.match(/^(\d+\.?\d*)/);
+        return match ? parseFloat(match[1]) : Infinity;
+    };
+    const numA = getNumericValue(a.name);
+    const numB = getNumericValue(b.name);
+    
+    // If both have numbers, sort numerically
+    if (numA !== Infinity && numB !== Infinity) {
+        return numA - numB;
+    }
+    // If only one has a number, put it first
+    if (numA !== Infinity) return -1;
+    if (numB !== Infinity) return 1;
+    // If neither has a number, sort alphabetically
+    return a.name.localeCompare(b.name);
+}
+
+// Encode a multi-segment path safely (keeps '/' separators)
+function encodePathSegments(pathStr) {
+    if (!pathStr) return "";
+    return pathStr.split("/").map(seg => encodeURIComponent(seg)).join("/");
+}
+
+function extractQuickPathFromChapterUrl(fileUrl) {
+    if (!fileUrl) return null;
+    const marker = "/refs/heads/main/";
+    const idx = fileUrl.indexOf(marker);
+    if (idx === -1) return null;
+
+    const encodedPath = fileUrl.slice(idx + marker.length).split(/[?#]/)[0];
+    if (!encodedPath) return null;
+
+    try {
+        return encodedPath
+            .split("/")
+            .filter(Boolean)
+            .map(seg => decodeURIComponent(seg))
+            .join("/");
+    } catch (_e) {
+        return null;
+    }
+}
+
+function updateUrlForCurrentChapter(fileUrl) {
+    const quickPath = extractQuickPathFromChapterUrl(fileUrl);
+    if (!quickPath) return;
+
+    const nextParams = new URLSearchParams(location.search);
+    nextParams.delete("p");
+    nextParams.delete("story");
+    nextParams.set("path", quickPath);
+
+    const nextUrl = `${location.pathname}?${nextParams.toString()}`;
+    history.replaceState(null, "", nextUrl);
+}
+
+// ====== Cache: GitHub API (1 hour expiration) ======
+const CACHE_EXPIRY = 60 * 60 * 1000; // 1 hour in milliseconds
+const CACHE_KEY_PREFIX = "gh_cache_";
+
+function clearGitHubCache() {
+    try {
+        const keys = Object.keys(localStorage);
+        for (const k of keys) {
+            if (k.startsWith(CACHE_KEY_PREFIX)) localStorage.removeItem(k);
+        }
+        log("Cleared GitHub cache");
+    } catch (e) {
+        log("Failed to clear GitHub cache:", e);
+    }
+}
+
+function getCachedData(key) {
+    try {
+        const cached = localStorage.getItem(`${CACHE_KEY_PREFIX}${key}`);
+        if (!cached) return null;
+        
+        const { data, timestamp } = JSON.parse(cached);
+        const now = Date.now();
+        
+        // Check if cache is still valid (within 1 hour)
+        if (now - timestamp < CACHE_EXPIRY) {
+            return data;
+        } else {
+            // Cache expired, remove it
+            localStorage.removeItem(`${CACHE_KEY_PREFIX}${key}`);
+            return null;
+        }
+    } catch (_e) {
+        return null;
+    }
+}
+
+function setCachedData(key, data) {
+    const cacheData = { data, timestamp: Date.now() };
+    try {
+        localStorage.setItem(`${CACHE_KEY_PREFIX}${key}`, JSON.stringify(cacheData));
+    } catch (e) {
+        // If storage is full, try to clear old cache entries
+        try {
+            const keys = Object.keys(localStorage);
+            keys.filter(k => k.startsWith(CACHE_KEY_PREFIX)).forEach(k => localStorage.removeItem(k));
+            localStorage.setItem(`${CACHE_KEY_PREFIX}${key}`, JSON.stringify(cacheData));
+        } catch (_e2) {
+        }
+    }
+}
+
+// Cached fetch function for GitHub API
+async function cachedFetch(apiUrl) {
+    // Use URL as cache key
+    const cacheKey = apiUrl;
+    
+    // Check cache first
+    const cachedData = getCachedData(cacheKey);
+    if (cachedData !== null) {
+        log("cache hit:", apiUrl);
+        return cachedData;
+    }
+    
+    // Fetch from API
+    log("fetch:", apiUrl);
+    const res = await fetch(apiUrl);
+    
+    if (!res.ok) {
+        const errorText = await res.text();
+        throw { status: res.status, message: errorText };
+    }
+    
+    const data = await res.json();
+    
+    // Check if data is an error object from GitHub API
+    if (data.message) {
+        throw { status: res.status, message: data.message };
+    }
+    
+    // Cache the response
+    setCachedData(cacheKey, data);
+    
+    return data;
+}
+
+const supportImageSrcCache = new Map();
+
+function extractSupportImageSrc(rawHtml, pageUrl) {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(rawHtml, "text/html");
+    const sourceImg = doc.querySelector("img[src]");
+    const src = sourceImg ? sourceImg.getAttribute("src") : "";
+    if (!src) throw new Error("Support page has no image");
+    return new URL(src, pageUrl).href;
+}
+
+async function loadSupportImageSrc(pageUrl) {
+    if (supportImageSrcCache.has(pageUrl)) return supportImageSrcCache.get(pageUrl);
+
+    const res = await fetch(pageUrl, { cache: "no-store" });
+    if (!res.ok) throw new Error(`Cannot load support page: HTTP ${res.status}`);
+
+    const src = extractSupportImageSrc(await res.text(), pageUrl);
+    supportImageSrcCache.set(pageUrl, src);
+    return src;
+}
+
+function createChapterSupportImage(pageUrl, altText) {
+    const img = document.createElement("img");
+    img.className = "chapter-support-image";
+    img.alt = altText;
+    img.loading = "eager";
+    img.decoding = "async";
+
+    loadSupportImageSrc(pageUrl).then(src => {
+        img.src = src;
+    }).catch(err => {
+        log("Failed to load chapter support image:", err);
+        img.remove();
+    });
+
+    return img;
+}
+
+function addChapterSupportImages(contentDiv) {
+    if (!contentDiv) return;
+    contentDiv.prepend(createChapterSupportImage(CHAPTER_DONATORS_PAGE_URL, "Donators"));
+    contentDiv.appendChild(createChapterSupportImage(CHAPTER_DONATE_PAGE_URL, "Donate"));
+}
+
+// ====== Reading: chapter navigation state ======
+let currentStoryName = null;
+let chapterIndex = [];
+let chapterIndexPromise = null;
+let currentChapterIdx = -1;
+let chapSelectBoundCount = -1;
+
+// ====== Reading: last-read persistence per story ======
+function lastReadKey(storyName) {
+    return `last_read_story_${encodeURIComponent(storyName || "")}`;
+}
+
+function getLastRead(storyName) {
+    try {
+        const raw = localStorage.getItem(lastReadKey(storyName));
+        if (!raw) return null;
+        const obj = JSON.parse(raw);
+        if (!obj || typeof obj !== "object") return null;
+        return obj; // { url, name, ts }
+    } catch {
+        return null;
+    }
+}
+
+function setLastRead(storyName, url, name) {
+    if (!storyName || !url) return;
+    try {
+        localStorage.setItem(
+            lastReadKey(storyName),
+            JSON.stringify({ url, name: name || "", ts: Date.now() })
+        );
+    } catch (_e) {
+    }
+}
+
+function showNavControls(show) {
+    const nav = document.getElementById("nav-controls");
+    if (nav) nav.style.display = show ? "flex" : "none";
+}
+
+function setCurrentChapterByUrl(url) {
+    if (!chapterIndex || chapterIndex.length === 0) {
+        currentChapterIdx = -1;
+        return;
+    }
+    const idx = chapterIndex.findIndex(x => x.url === url);
+    currentChapterIdx = idx;
+}
+
+function updateNavControls() {
+    const prevBtn = document.getElementById("prev-chap-btn");
+    const nextBtn = document.getElementById("next-chap-btn");
+    const select = document.getElementById("chap-select");
+
+    const total = chapterIndex ? chapterIndex.length : 0;
+    if (select) {
+        // Build options when list changes (or first time)
+        if (chapSelectBoundCount !== total) {
+            select.innerHTML = "";
+
+            if (total <= 0) {
+                const opt = document.createElement("option");
+                opt.value = "-1";
+                opt.textContent = "—";
+                select.appendChild(opt);
+                select.disabled = true;
+            } else {
+                for (let i = 0; i < total; i++) {
+                    const it = chapterIndex[i];
+                    const opt = document.createElement("option");
+                    opt.value = String(i);
+                    opt.textContent = `${it?.name || ""}`;
+                    select.appendChild(opt);
+                }
+                select.disabled = false;
+            }
+
+            chapSelectBoundCount = total;
+        }
+
+        // Update selected option to current chapter
+        if (total > 0 && currentChapterIdx >= 0) {
+            select.value = String(currentChapterIdx);
+        } else {
+            select.value = "-1";
+        }
+    }
+
+    if (prevBtn) prevBtn.disabled = !(currentChapterIdx > 0);
+    if (nextBtn) nextBtn.disabled = !(total > 0 && currentChapterIdx >= 0 && currentChapterIdx < total - 1);
+}
+
+function getHtmlFiles(items) {
+    return items
+        .filter(item => item.type === "file" && item.name.toLowerCase().endsWith(".html"))
+        .sort(numericSort);
+}
+
+function getSortedDirs(items) {
+    return items
+        .filter(item => item.type === "dir")
+        .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+function createChapterLink(fileName, fileUrl, isLastRead) {
+    const chapDiv = document.createElement("div");
+    chapDiv.className = `chap${isLastRead ? " last-read" : ""}`;
+
+    const link = document.createElement("a");
+    link.href = "#";
+    link.textContent = fileName;
+    link.addEventListener("click", (ev) => {
+        ev.preventDefault();
+        loadHtmlFile(fileUrl, fileName);
+    });
+
+    chapDiv.appendChild(link);
+    return chapDiv;
+}
+
+function appendFolderShell(parentEl, folderId, titleText) {
+    const folderWrap = document.createElement("div");
+    folderWrap.className = "folder";
+
+    const folderTitle = document.createElement("div");
+    folderTitle.className = "folder-title";
+    folderTitle.textContent = titleText;
+
+    const folderContent = document.createElement("div");
+    folderContent.id = `f-${folderId}`;
+    folderContent.textContent = "Đang tải...";
+
+    folderWrap.appendChild(folderTitle);
+    folderWrap.appendChild(folderContent);
+    parentEl.appendChild(folderWrap);
+}
+
+function startChapterIndexBuild(storyName) {
+    chapterIndex = [];
+    currentChapterIdx = -1;
+    showNavControls(false);
+    updateNavControls();
+
+    chapterIndexPromise = buildChapterIndexForStory(storyName).then(list => {
+        chapterIndex = list || [];
+        updateNavControls();
+        return chapterIndex;
+    }).catch(err => {
+        log("Failed to build chapter index:", err);
+        chapterIndex = [];
+        updateNavControls();
+        return chapterIndex;
+    });
+}
+
+async function buildChapterIndexForStory(storyName) {
+    const out = [];
+    const storySeg = encodeURIComponent(storyName);
+
+    async function walk(relativePath) {
+        const rel = relativePath ? encodePathSegments(relativePath) : "";
+        const apiUrl = rel
+            ? `${GITHUB_CONTENTS_API_URL}/${storySeg}/${rel}`
+            : `${GITHUB_CONTENTS_API_URL}/${storySeg}`;
+
+        const data = await cachedFetch(apiUrl);
+        if (!Array.isArray(data)) return;
+
+        const files = getHtmlFiles(data);
+        const dirs = getSortedDirs(data);
+
+        const rawBase = `${REPO_RAW_ROOT}/${storySeg}`;
+
+        for (const f of files) {
+            const url = relativePath
+                ? `${rawBase}/${encodePathSegments(relativePath)}/${encodeURIComponent(f.name)}`
+                : `${rawBase}/${encodeURIComponent(f.name)}`;
+            const path = relativePath ? `${relativePath}/${f.name}` : f.name;
+            out.push({ url, name: f.name, path });
+        }
+
+        for (const d of dirs) {
+            const nextRel = relativePath ? `${relativePath}/${d.name}` : d.name;
+            await walk(nextRel);
+        }
+    }
+
+    await walk("");
+    return out;
+}
+
+async function loadChapters(story) {
+    // Get story from parameter or URL params
+    if (!story) {
+        story = decodeStoryParam();
+    }
+
+    const storyTitleEl = document.getElementById("story-title");
+    const chapListEl = document.getElementById("chap-list");
+
+    if (!story) {
+        if (storyTitleEl) storyTitleEl.innerText = "Lỗi: không có tên truyện.";
+        if (chapListEl) chapListEl.innerText = "Lỗi: không có tên truyện.";
+        return;
+    }
+
+    if (storyTitleEl) {
+        storyTitleEl.innerText = story;
+    }
+
+    // Set current story for navigation + start building chapter index (cached)
+    currentStoryName = story;
+    startChapterIndexBuild(story);
+
+    // Encode story name for URL
+    const encodedStory = encodeURIComponent(story);
+    const apiUrl = `${GITHUB_CONTENTS_API_URL}/${encodedStory}`;
+
+    try {
+        const data = await cachedFetch(apiUrl);
+
+        if (!Array.isArray(data)) {
+            if (chapListEl) chapListEl.innerText = `Không thể tải cây thư mục. Dữ liệu nhận được: ${JSON.stringify(data)}`;
+            return;
+        }
+
+        // Show files at root level if any
+        const rootFiles = getHtmlFiles(data);
+        const folders = getSortedDirs(data);
+
+        const lastRead = getLastRead(story);
+
+        if (chapListEl) chapListEl.replaceChildren();
+
+        // Display root level files
+        for (const file of rootFiles) {
+            const fileUrl = `${REPO_RAW_ROOT}/${encodedStory}/${encodeURIComponent(file.name)}`;
+            const isLast = lastRead && lastRead.url === fileUrl;
+            if (chapListEl) chapListEl.appendChild(createChapterLink(file.name, fileUrl, isLast));
+        }
+
+        // Recursively load all folders
+        for (const folder of folders) {
+            const folderId = folder.name.replace(/\//g, "_");
+            if (chapListEl) {
+                appendFolderShell(chapListEl, folderId, folder.name);
+            }
+            loadFolderRecursive(story, folder.name, folderId);
+        }
+
+    } catch (e) {
+        // Better error message for CORS issues
+        if (e.name === 'TypeError' && e.message.includes('fetch')) {
+            if (chapListEl) chapListEl.innerText = "Lỗi CORS: Không thể kết nối tới GitHub API. Vui lòng chạy từ web server (không dùng file:///).";
+        } else {
+            if (chapListEl) chapListEl.innerText = `Lỗi kết nối GitHub: ${e.message}`;
+        }
+        log("Error loading chapters:", e);
+    }
+};
+
+async function loadFolderRecursive(storyName, folderPath, folderId) {
+    const encodedStory = encodeURIComponent(storyName);
+    const encodedFolderPath = encodePathSegments(folderPath);
+    const apiUrl = `${GITHUB_CONTENTS_API_URL}/${encodedStory}/${encodedFolderPath}`;
+    const folderDiv = document.getElementById(`f-${folderId}`);
+
+    if (!folderDiv) {
+        return;
+    }
+
+    try {
+        const data = await cachedFetch(apiUrl);
+        
+        if (!Array.isArray(data)) {
+            folderDiv.innerText = "Không thể tải danh sách.";
+            return;
+        }
+
+        // Separate files and folders
+        const files = getHtmlFiles(data);
+        const subFolders = getSortedDirs(data);
+        
+        const lastRead = getLastRead(storyName);
+        folderDiv.replaceChildren();
+
+        // Display files in current folder
+        for (const file of files) {
+            const fileUrl = `${REPO_RAW_ROOT}/${encodedStory}/${encodedFolderPath}/${encodeURIComponent(file.name)}`;
+            const isLast = lastRead && lastRead.url === fileUrl;
+            folderDiv.appendChild(createChapterLink(file.name, fileUrl, isLast));
+        }
+
+        // Add subfolders to HTML first
+        const subFolderData = [];
+        for (const subFolder of subFolders) {
+            const subFolderPath = folderPath ? `${folderPath}/${subFolder.name}` : subFolder.name;
+            const subFolderId = subFolderPath.replace(/\//g, '_');
+            appendFolderShell(folderDiv, subFolderId, subFolder.name);
+            subFolderData.push({ path: subFolderPath, id: subFolderId });
+        }
+
+        if (files.length === 0 && subFolders.length === 0) {
+            folderDiv.innerText = "Thư mục trống.";
+        }
+        
+        // Now recursively load subfolders after DOM is updated
+        for (const subFolder of subFolderData) {
+            loadFolderRecursive(storyName, subFolder.path, subFolder.id);
+        }
+
+    } catch (error) {
+        if (error.name === 'TypeError' && error.message && error.message.includes('fetch')) {
+            folderDiv.innerText = "Lỗi CORS";
+        } else if (error.status) {
+            folderDiv.innerText = `Lỗi HTTP ${error.status}`;
+        } else if (error.message) {
+            folderDiv.innerText = `Lỗi: ${error.message}`;
+        } else {
+            folderDiv.innerText = `Lỗi: ${error}`;
+        }
+        log("Error loading folder:", error);
+    }
+}
+
+// ====== Reading: width adjustment ======
+let currentMaxWidth = parseInt(localStorage.getItem('chapterMaxWidth')) || 800;
+const minWidth = 100;
+const maxWidth = 2000;
+const widthStep = 50;
+let isViewingChapter = false;
+let chapterMagnifierLens = null;
+let magnifierMoveHandler = null;
+let magnifierLeaveHandler = null;
+let magnifierDownHandler = null;
+let magnifierUpHandler = null;
+let magnifierDragStartHandler = null;
+let isMagnifierHolding = false;
+const MAGNIFIER_SIZE = 220;
+const MAGNIFIER_MIN_ZOOM = 1.2;
+const MAGNIFIER_MAX_ZOOM = 20.0;
+const MAGNIFIER_ZOOM_STEP = 0.2;
+let currentMagnifierZoom = parseFloat(localStorage.getItem("chapterMagnifierZoom")) || 2.2;
+
+function isMobileReadingDevice() {
+    if (!window.matchMedia) return false;
+    return window.matchMedia("(pointer: coarse), (hover: none)").matches;
+}
+
+function ensureMagnifierLens() {
+    if (chapterMagnifierLens && chapterMagnifierLens.isConnected) return chapterMagnifierLens;
+    chapterMagnifierLens = document.getElementById("chapter-magnifier-lens");
+    if (!chapterMagnifierLens) {
+        chapterMagnifierLens = document.createElement("div");
+        chapterMagnifierLens.id = "chapter-magnifier-lens";
+        document.body.appendChild(chapterMagnifierLens);
+    }
+    return chapterMagnifierLens;
+}
+
+function hideChapterMagnifier() {
+    const lens = ensureMagnifierLens();
+    lens.style.display = "none";
+}
+
+function setMagnifierCursorHidden(hidden) {
+    const contentDiv = document.getElementById("content");
+    if (!contentDiv) return;
+    contentDiv.classList.toggle("magnifier-active", !!hidden);
+}
+
+function setMagnifierZoom(value) {
+    const normalized = Math.max(MAGNIFIER_MIN_ZOOM, Math.min(MAGNIFIER_MAX_ZOOM, value));
+    currentMagnifierZoom = Math.round(normalized * 10) / 10;
+    try {
+        localStorage.setItem("chapterMagnifierZoom", String(currentMagnifierZoom));
+    } catch (_e) {}
+    const display = document.getElementById("magnifier-display");
+    if (display) display.textContent = `${currentMagnifierZoom.toFixed(1)}x`;
+}
+
+function bindPressAndHold(buttonEl, onStep) {
+    if (!buttonEl || typeof onStep !== "function") return;
+
+    let repeatDelayTimer = null;
+    let repeatIntervalTimer = null;
+    let holding = false;
+
+    const clearTimers = () => {
+        if (repeatDelayTimer) clearTimeout(repeatDelayTimer);
+        if (repeatIntervalTimer) clearInterval(repeatIntervalTimer);
+        repeatDelayTimer = null;
+        repeatIntervalTimer = null;
+    };
+
+    const stop = () => {
+        if (!holding) return;
+        holding = false;
+        clearTimers();
+    };
+
+    const start = (ev) => {
+        if (ev && ev.type === "pointerdown" && ev.pointerType === "mouse" && ev.button !== 0) return;
+        if (ev && ev.type === "mousedown" && ev.button !== 0) return;
+        if (ev && ev.cancelable) ev.preventDefault();
+
+        stop();
+        holding = true;
+        onStep();
+        repeatDelayTimer = setTimeout(() => {
+            if (!holding) return;
+            repeatIntervalTimer = setInterval(() => {
+                onStep();
+            }, 80);
+        }, 260);
+    };
+
+    if (window.PointerEvent) {
+        buttonEl.addEventListener("pointerdown", start);
+        window.addEventListener("pointerup", stop);
+        window.addEventListener("pointercancel", stop);
+    } else {
+        buttonEl.addEventListener("mousedown", start);
+        buttonEl.addEventListener("touchstart", start, { passive: false });
+        window.addEventListener("mouseup", stop);
+        window.addEventListener("touchend", stop);
+        window.addEventListener("touchcancel", stop);
+    }
+
+    buttonEl.addEventListener("mouseleave", stop);
+    buttonEl.addEventListener("blur", stop);
+    window.addEventListener("blur", stop);
+}
+
+function initMagnifierControls() {
+    const decBtn = document.getElementById("magnifier-decrease");
+    const incBtn = document.getElementById("magnifier-increase");
+    if (!decBtn || !incBtn) return;
+
+    setMagnifierZoom(currentMagnifierZoom);
+    bindPressAndHold(decBtn, () => {
+        setMagnifierZoom(currentMagnifierZoom - MAGNIFIER_ZOOM_STEP);
+    });
+    bindPressAndHold(incBtn, () => {
+        setMagnifierZoom(currentMagnifierZoom + MAGNIFIER_ZOOM_STEP);
+    });
+}
+
+function disableChapterMagnifier() {
+    const contentDiv = document.getElementById("content");
+    if (contentDiv && magnifierMoveHandler) {
+        contentDiv.removeEventListener("mousemove", magnifierMoveHandler);
+    }
+    if (contentDiv && magnifierLeaveHandler) {
+        contentDiv.removeEventListener("mouseleave", magnifierLeaveHandler);
+    }
+    if (contentDiv && magnifierDownHandler) {
+        contentDiv.removeEventListener("mousedown", magnifierDownHandler);
+    }
+    if (contentDiv && magnifierDragStartHandler) {
+        contentDiv.removeEventListener("dragstart", magnifierDragStartHandler);
+    }
+    if (magnifierUpHandler) {
+        window.removeEventListener("mouseup", magnifierUpHandler);
+        window.removeEventListener("blur", magnifierUpHandler);
+    }
+    magnifierMoveHandler = null;
+    magnifierLeaveHandler = null;
+    magnifierDownHandler = null;
+    magnifierUpHandler = null;
+    magnifierDragStartHandler = null;
+    isMagnifierHolding = false;
+    setMagnifierCursorHidden(false);
+    hideChapterMagnifier();
+}
+
+function enableChapterMagnifier() {
+    const contentDiv = document.getElementById("content");
+    if (!contentDiv) return;
+    if (window.matchMedia && window.matchMedia("(pointer: coarse)").matches) return;
+
+    disableChapterMagnifier();
+    const lens = ensureMagnifierLens();
+
+    magnifierMoveHandler = (ev) => {
+        if (!isViewingChapter || !isMagnifierHolding || (typeof ev.buttons === "number" && (ev.buttons & 1) !== 1)) {
+            lens.style.display = "none";
+            return;
+        }
+
+        const target = ev.target && ev.target.closest ? ev.target.closest("img") : null;
+        if (!target || !contentDiv.contains(target) || !target.complete || !target.src) {
+            lens.style.display = "none";
+            return;
+        }
+
+        const rect = target.getBoundingClientRect();
+        if (!rect.width || !rect.height) {
+            lens.style.display = "none";
+            return;
+        }
+
+        const x = ev.clientX - rect.left;
+        const y = ev.clientY - rect.top;
+        if (x < 0 || y < 0 || x > rect.width || y > rect.height) {
+            lens.style.display = "none";
+            return;
+        }
+
+        lens.style.display = "block";
+        lens.style.left = `${ev.clientX - (MAGNIFIER_SIZE / 2)}px`;
+        lens.style.top = `${ev.clientY - (MAGNIFIER_SIZE / 2)}px`;
+        lens.style.backgroundImage = `url("${target.currentSrc || target.src}")`;
+        lens.style.backgroundSize = `${rect.width * currentMagnifierZoom}px ${rect.height * currentMagnifierZoom}px`;
+        lens.style.backgroundPosition = `${-(x * currentMagnifierZoom) + (MAGNIFIER_SIZE / 2)}px ${-(y * currentMagnifierZoom) + (MAGNIFIER_SIZE / 2)}px`;
+    };
+
+    magnifierLeaveHandler = () => {
+        isMagnifierHolding = false;
+        lens.style.display = "none";
+    };
+
+    magnifierDownHandler = (ev) => {
+        if (ev.button !== 0) return;
+        const target = ev.target && ev.target.closest ? ev.target.closest("img") : null;
+        if (!target || !contentDiv.contains(target)) {
+            isMagnifierHolding = false;
+            setMagnifierCursorHidden(false);
+            lens.style.display = "none";
+            return;
+        }
+        ev.preventDefault();
+        isMagnifierHolding = true;
+        setMagnifierCursorHidden(true);
+        magnifierMoveHandler(ev);
+    };
+
+    magnifierUpHandler = () => {
+        isMagnifierHolding = false;
+        setMagnifierCursorHidden(false);
+        lens.style.display = "none";
+    };
+
+    magnifierDragStartHandler = (ev) => {
+        const target = ev.target && ev.target.closest ? ev.target.closest("img") : null;
+        if (!target || !contentDiv.contains(target)) return;
+        ev.preventDefault();
+    };
+
+    contentDiv.addEventListener("mousemove", magnifierMoveHandler);
+    contentDiv.addEventListener("mouseleave", magnifierLeaveHandler);
+    contentDiv.addEventListener("mousedown", magnifierDownHandler);
+    contentDiv.addEventListener("dragstart", magnifierDragStartHandler);
+    window.addEventListener("mouseup", magnifierUpHandler);
+    window.addEventListener("blur", magnifierUpHandler);
+}
+
+// Initialize width controls
+function initWidthControls() {
+    const widthControls = document.getElementById("width-controls");
+    const widthDisplay = document.getElementById("width-display");
+    const widthDecrease = document.getElementById("width-decrease");
+    const widthIncrease = document.getElementById("width-increase");
+    const contentDiv = document.getElementById("content");
+    
+    if (!widthControls || !widthDisplay || !widthDecrease || !widthIncrease) return;
+    
+    // Update display
+    function updateWidthDisplay() {
+        widthDisplay.textContent = currentMaxWidth + "px";
+        if (contentDiv && isViewingChapter) {
+            contentDiv.style.maxWidth = currentMaxWidth + "px";
+        }
+        localStorage.setItem('chapterMaxWidth', currentMaxWidth);
+    }
+    
+    // Decrease width
+    bindPressAndHold(widthDecrease, () => {
+        if (currentMaxWidth > minWidth) {
+            currentMaxWidth = Math.max(minWidth, currentMaxWidth - widthStep);
+            updateWidthDisplay();
+        }
+    });
+    
+    // Increase width
+    bindPressAndHold(widthIncrease, () => {
+        if (currentMaxWidth < maxWidth) {
+            currentMaxWidth = Math.min(maxWidth, currentMaxWidth + widthStep);
+            updateWidthDisplay();
+        }
+    });
+    
+    // Initial display update (don't set max-width, just show the value)
+    widthDisplay.textContent = currentMaxWidth + "px";
+}
+
+// Show/hide width controls
+function showWidthControls(show) {
+    const widthControls = document.getElementById("width-controls");
+    const magnifierControls = document.getElementById("magnifier-controls");
+    const contentDiv = document.getElementById("content");
+    const mobileMode = isMobileReadingDevice();
+    
+    isViewingChapter = show;
+    
+    if (widthControls) {
+        widthControls.style.display = (show && !mobileMode) ? "flex" : "none";
+    }
+    if (magnifierControls) {
+        magnifierControls.style.display = (show && !mobileMode) ? "flex" : "none";
+    }
+    
+    if (contentDiv) {
+        if (show) {
+            document.body.classList.add("reading-mode");
+            contentDiv.classList.add("viewing-chapter");
+            contentDiv.style.maxWidth = mobileMode ? "auto" : (currentMaxWidth + "px");
+            if (mobileMode) {
+                disableChapterMagnifier();
+            } else {
+                enableChapterMagnifier();
+            }
+        } else {
+            document.body.classList.remove("reading-mode");
+            contentDiv.classList.remove("viewing-chapter");
+            contentDiv.style.maxWidth = "auto";
+            disableChapterMagnifier();
+        }
+    }
+}
+
+// Load HTML file content
+function renderQuickAccessError(pathValue, detailText) {
+    const contentDiv = document.getElementById("content");
+    if (contentDiv) {
+        contentDiv.replaceChildren();
+        const wrap = document.createElement("div");
+        wrap.style.padding = "24px";
+        wrap.style.textAlign = "center";
+
+        const title = document.createElement("h3");
+        title.style.margin = "0 0 10px 0";
+        title.textContent = "Không tìm thấy chapter";
+
+        const text = document.createElement("div");
+        text.textContent = `Quick access path không tồn tại: ${pathValue || ""}`;
+
+        wrap.appendChild(title);
+        wrap.appendChild(text);
+
+        if (detailText) {
+            const detail = document.createElement("div");
+            detail.style.marginTop = "10px";
+            detail.style.color = "#666";
+            detail.textContent = String(detailText);
+            wrap.appendChild(detail);
+        }
+
+        const btn = document.createElement("button");
+        btn.style.marginTop = "16px";
+        btn.style.padding = "8px 14px";
+        btn.style.cursor = "pointer";
+        btn.textContent = "Về trang chủ";
+        btn.addEventListener("click", () => {
+            location.href = "?p=home";
+        });
+        wrap.appendChild(btn);
+        contentDiv.appendChild(wrap);
+    }
+    setHeaderButtons(true, false);
+    showWidthControls(false);
+    showNavControls(false);
+    updateNavControls();
+}
+
+async function loadHtmlFile(fileUrl, fileName, options = {}) {
+    const contentDiv = document.getElementById("content");
+    const isQuickAccess = !!options.isQuickAccess;
+
+    // Ensure story name exists for navigation (best-effort)
+    if (!currentStoryName) {
+        currentStoryName = decodeStoryParam();
+    }
+    
+    try {
+        updateUrlForCurrentChapter(fileUrl);
+        // Persist last read for this story
+        if (currentStoryName) {
+            setLastRead(currentStoryName, fileUrl, fileName);
+        }
+        // Show loading
+        contentDiv.replaceChildren();
+        const loading = document.createElement("div");
+        loading.style.padding = "20px";
+        loading.style.textAlign = "center";
+        loading.textContent = "Đang tải...";
+        contentDiv.appendChild(loading);
+        
+        // Fetch HTML file
+        const res = await fetch(fileUrl);
+        if (!res.ok) {
+            if (isQuickAccess) {
+                const pathValue = params.get("path") || extractQuickPathFromChapterUrl(fileUrl) || "";
+                renderQuickAccessError(pathValue, `HTTP ${res.status}`);
+                return false;
+            }
+            contentDiv.replaceChildren();
+            const err = document.createElement("div");
+            err.style.padding = "20px";
+            err.textContent = `Lỗi tải file: HTTP ${res.status}`;
+            contentDiv.appendChild(err);
+            return false;
+        }
+        
+        const html = await res.text();
+        const safeHtml = sanitizeRemoteHtml(html);
+
+        // Load the HTML content
+        contentDiv.innerHTML = safeHtml;
+        addChapterSupportImages(contentDiv);
+        
+        // Show back buttons and width controls
+        setHeaderButtons(true, true);
+        showWidthControls(true);
+
+        // Wait for chapter index to be ready, then enable Prev/Next
+        if (chapterIndexPromise) {
+            try { await chapterIndexPromise; } catch (_) {}
+        }
+        setCurrentChapterByUrl(fileUrl);
+        showNavControls(true);
+        updateNavControls();
+        return true;
+        
+    } catch (e) {
+        if (isQuickAccess) {
+            const pathValue = params.get("path") || extractQuickPathFromChapterUrl(fileUrl) || "";
+            renderQuickAccessError(pathValue, e.message || "Không thể tải chapter");
+            return false;
+        }
+        contentDiv.replaceChildren();
+        const err = document.createElement("div");
+        err.style.padding = "20px";
+        err.textContent = `Lỗi: ${e.message}`;
+        contentDiv.appendChild(err);
+        log("Error loading HTML file:", e);
+        return false;
+    }
+}
+
+// Back to chapter list handler
+function backToChapList() {
+    // Always refresh chap list so "last read" highlight updates
+    const storyName = currentStoryName || decodeStoryParam();
+
+    loadPage("chapList").then(() => {
+        scheduleLoadChapters(storyName);
+    });
+
+    setHeaderButtons(true, false);
+    showWidthControls(false);
+    showNavControls(false);
+    updateNavControls();
+}
+
+// Initialize width controls when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        initWidthControls();
+        initMagnifierControls();
+    });
+} else {
+    initWidthControls();
+    initMagnifierControls();
+}
+
+// Chapter navigation handlers
+function goToChapterByIndex(idx) {
+    if (!chapterIndex || chapterIndex.length === 0) return;
+    if (idx < 0 || idx >= chapterIndex.length) return;
+    const item = chapterIndex[idx];
+    if (!item) return;
+    loadHtmlFile(item.url, item.name);
+}
+
+function goPrevChapter() {
+    if (currentChapterIdx > 0) goToChapterByIndex(currentChapterIdx - 1);
+}
+
+function goNextChapter() {
+    if (chapterIndex && currentChapterIdx >= 0 && currentChapterIdx < chapterIndex.length - 1) {
+        goToChapterByIndex(currentChapterIdx + 1);
+    }
+}
+
+const prevChapBtn = document.getElementById("prev-chap-btn");
+if (prevChapBtn) prevChapBtn.addEventListener("click", goPrevChapter);
+
+const nextChapBtn = document.getElementById("next-chap-btn");
+if (nextChapBtn) nextChapBtn.addEventListener("click", goNextChapter);
+
+// Chapter jump dropdown (mobile friendly)
+const chapSelect = document.getElementById("chap-select");
+if (chapSelect) {
+    chapSelect.addEventListener("change", () => {
+        const v = chapSelect.value;
+        const idx = parseInt(v, 10);
+        if (!Number.isFinite(idx) || idx < 0) return;
+        goToChapterByIndex(idx);
+    });
+}
+
+// Shift+F5: clear cached GitHub API JSONs (gh_cache_*) then reload
+document.addEventListener("keydown", (ev) => {
+    if (ev.key === "F5" && ev.shiftKey) {
+        // Prevent the browser's default reload so we can clear cache first
+        try { ev.preventDefault(); } catch (_) {}
+        clearGitHubCache();
+        setTimeout(() => location.reload(), 0);
+    }
+});
+
+
+// Remove third-party injected div
+function normalizeLayoutAfterThirdPartyArtifacts() {
+    const root = document.documentElement;
+    const body = document.body;
+    if (!root || !body) return;
+
+    // Some injected widgets leave forced spacing via !important rules.
+    const resetSpacing = (el) => {
+        el.style.setProperty("margin", "0", "important");
+        el.style.setProperty("padding", "0", "important");
+        el.style.setProperty("margin-bottom", "0", "important");
+        el.style.setProperty("padding-bottom", "0", "important");
+        el.style.setProperty("bottom", "auto", "important");
+        el.style.setProperty("inset", "auto", "important");
+        el.style.setProperty("min-height", "auto", "important");
+    };
+
+    resetSpacing(root);
+    resetSpacing(body);
+}
+
+function removeThirdPartyDiv() {
+    // Find injected bottom bars with fixed positioning.
+    const allNodes = document.querySelectorAll("*");
+    const isInjectedBanner = (style) => style &&
+        style.includes("position: fixed") &&
+        style.includes("bottom: 0%") &&
+        style.includes("left: 0%") &&
+        style.includes("right: 0%") &&
+        style.includes("width: 100%") &&
+        style.includes("z-index: 9999");
+    let removed = false;
+
+    for (const node of allNodes) {
+        const style = node.getAttribute ? node.getAttribute("style") : "";
+        if (isInjectedBanner(style)) {
+            node.remove();
+            removed = true;
+        }
+    }
+
+    // Always normalize in case spacing styles were left behind.
+    normalizeLayoutAfterThirdPartyArtifacts();
+    return removed;
+}
+
+// Use MutationObserver to watch for DOM changes
+const observer = new MutationObserver(() => {
+    removeThirdPartyDiv();
+});
+
+// Start observing
+observer.observe(document.body, {
+    childList: true,
+    subtree: true
+});
+
+// Also check immediately and periodically as backup
+removeThirdPartyDiv();
+setInterval(removeThirdPartyDiv, 1000);
+
+// Back button handlers
+const backHomeBtn = document.getElementById("back-home-btn");
+if (backHomeBtn) {
+    backHomeBtn.addEventListener("click", () => {
+        showWidthControls(false);
+        location.href = "?p=home";
+    });
+}
+
+const backChapListBtn = document.getElementById("back-chaplist-btn");
+if (backChapListBtn) {
+    backChapListBtn.addEventListener("click", backToChapList);
+}
+
+// Get latest chapter number from a story directory
+// Recursively searches all files and finds the highest chapter number
+// Chapter files should be named like: 1.0.html, 1.5.html, 2.0.html, etc.
+async function getLatestChap(storyDir) {
+    if (!storyDir) return null;
+    
+    try {
+        const encodedDir = encodeURIComponent(storyDir);
+        const apiUrl = `${GITHUB_CONTENTS_API_URL}/${encodedDir}`;
+        
+        const data = await cachedFetch(apiUrl);
+        if (!Array.isArray(data)) {
+            return null;
+        }
+        
+        let maxChap = null;
+        
+        // Recursively process all items
+        for (const item of data) {
+            if (item.type === "file") {
+                // Check if file matches pattern: <float>.html
+                const match = item.name.match(/^(\d+\.?\d*)\.html$/);
+                if (match) {
+                    const chapNum = parseFloat(match[1]);
+                    if (maxChap === null || chapNum > maxChap) {
+                        maxChap = chapNum;
+                    }
+                }
+            } else if (item.type === "dir") {
+                // Recursively search subdirectories
+                const subDir = storyDir ? `${storyDir}/${item.name}` : item.name;
+                const subMaxChap = await getLatestChap(subDir);
+                if (subMaxChap !== null && (maxChap === null || subMaxChap > maxChap)) {
+                    maxChap = subMaxChap;
+                }
+            }
+        }
+        
+        return maxChap;
+    } catch (e) {
+        log("Error in getLatestChap:", e);
+        return null;
+    }
+}
+
+// Update latest chapter for all stories when home page loads
+async function updateLatestChapters() {
+    const latestChapterDivs = document.querySelectorAll(".latest-chapter");
+    
+    for (const div of latestChapterDivs) {
+        const storyDir = div.getAttribute("data-story-dir");
+        const latestDirDisplay = div.getAttribute("data-latest-dir-display") || "";
+        const showDirPrefix = div.getAttribute("data-show-dir-prefix") === "1";
+        if (storyDir) {
+            const latestChap = await getLatestChap(storyDir);
+            const boldEl = div.querySelector("b");
+            if (boldEl) {
+                if (latestChap !== null) {
+                    const latestValue = latestChap.toString();
+                    boldEl.textContent = showDirPrefix ? `${latestDirDisplay}/${latestValue}` : latestValue;
+                } else {
+                    boldEl.textContent = "—";
+                }
+            }
+        }
+    }
+}
+
+
+</script>
+
+</body>
+</html>
