@@ -2,7 +2,7 @@
 # story_directory<TAB>display_title<TAB>status<TAB>latest_chapter_directory(optional)
 Anh hùng & Quỷ vương & Phản diện	Anh hùng & Quỷ Vương & Phản diện	Hoàn thành
 Chúa tể muôn loài	Chúa tể muôn loài	Ngừng dịch	Part2
-Học viện Tracen hắc ám của các nàng	Học viện Tracen Hắc ám của các nàng	Ngang raw
+Học viện Tracen hắc ám của các nàng	Học viện Tracen Hắc ám của các nàng	Bị tác giả Drop?
 Mã Nương Cuộc đua xinh đẹp Ngôi sao nở rộ	Mã Nương - Cuộc đua xinh đẹp: Ngôi sao nở rộ	Volume 7
 Dũng giả tổ đội mạn họa	Dũng giả tổ đội mạn họa	Tuần 3+ chap
 Cái thế giới game otome này thật khắc nghiệt với chúng ta	Cái thế giới game otome này thật khắc nghiệt với chúng ta	Hoàn thành
